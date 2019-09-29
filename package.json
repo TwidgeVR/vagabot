@@ -1,0 +1,24 @@
+{
+  "name": "vagabot",
+  "version": "1.0.0",
+  "description": "A Township Tale NodeJS Bot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edencomputing/vagabot.git"
+  },
+  "keywords": [
+    "township",
+    "discord",
+    "bot"
+  ],
+  "author": "Twidge",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/edencomputing/vagabot/issues"
+  },
+  "homepage": "https://github.com/edencomputing/vagabot#readme"
+}
