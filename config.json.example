@@ -1,0 +1,16 @@
+// This is an example config.json
+// To use, remove the comments and replace <...> items with your values
+{
+    "targetServers" :
+    [
+        <list of server IDs to join>
+    ]
+
+    "discordPrefix" : "!",
+
+    "discordChannels" :
+    {
+        "playerjoin" : <discord channel ID>,
+        ...
+    }
+}   
