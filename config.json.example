@@ -1,16 +1,20 @@
-// This is an example config.json
-// To use, remove the comments and replace <...> items with your values
 {
     "targetServers" :
     [
         <list of server IDs to join>
-    ]
+    ],
 
     "discordPrefix" : "!",
 
     "discordChannels" :
     {
-        "playerjoin" : <discord channel ID>,
-        ...
+        "PlayerJoined" : <discord channel ID>,
+        "PlayerLeft" : <channel ID>,
+        "PlayerKilled" : <channel ID>,
+        "PublicPlayerKilled" : <channel ID>,
+        "PlayerMovedChunk" : <channel ID>,
+        "TradeDeckUsed" : <channel ID>,
+        "CreatureKilled" : <channel ID>,
+        "CreatureSpawned" : <channel ID>,
     }
 }   
