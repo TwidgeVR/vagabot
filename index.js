@@ -1,8 +1,8 @@
 //Load required classes.
 const { WebsocketBot } = require('att-bot-core');
 const { BasicWrapper } = require('att-websockets');
-const Discord = require('discord.js');
-const moment = require('moment');
+const { Discord } = require('discord.js');
+const { moment } = require('moment');
 
 //Load information from credentials and config
 const { username, password, botToken } = require("./credentials");
@@ -137,7 +137,6 @@ async function main()
     //When any of the 'targetServers' are available, a connection is automatically created.
     await bot.run(test => targetServers.includes(test.id), async (server, connection) =>
     {
-        console.log(connection);
         //By default, connections simply receive commands, and emit messages.
         //To add callback support for events, we'll use the "BasicWrapper" provided by att-websockets.
         var wrapper = new BasicWrapper(connection);
