@@ -148,7 +148,9 @@ async function main()
         //await wrapper.subscribe("PlayerKilled", data => { logMessage["PlayerKilled"]( discord, data ); })
         await wrapper.subscribe("TradeDeckUsed", data => { logMessage["TradeDeckUsed"]( discord, data ); })
         await wrapper.subscribe("CreatureKilled", data => { logMessage["CreatureKilled"]( discord, data ); })
-        await wrapper.subscribe("CreatureSpawned", data => { logMessage["CreatureSpawned"]( discord, data ); });
+
+        // this one is kinda spammy as it covers all automatic spawns, including inanimate objects
+        //await wrapper.subscribe("CreatureSpawned", data => { logMessage["CreatureSpawned"]( discord, data ); });
 
         // More complex subscriptions
         await wrapper.subscribe("PlayerMovedChunk", data =>
