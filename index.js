@@ -5,7 +5,7 @@ const Discord = require('discord.js');
 
 //Load information from credentials and config
 const { username, password, botToken } = require("./credentials");
-const { targetServers, discordPrefix } = require("./config");
+const { targetServers, discordPrefix, discordChannels } = require("./config");
 
 var locations = {};
 
@@ -26,6 +26,53 @@ const commands = {
         }
     }
 }
+
+const logMessage = {
+    'PlayerJoined' : ( discord, data ) =>
+    {
+        discord.channels.get( discordChannels["PlayerJoined"] ).send( data.user.username +" joined the server" );
+        console.log( data.user.username +" joined the server" );
+    },
+
+    'PlayerLeft' : ( discord, data ) =>
+    {
+        discord.channels.get( discordChannels["PlayerLeft"] ).send( data.user.username +" left the server" );
+        console.log( data.user.username +" left the server" );
+    },
+
+    'PlayerMovedChunk' : ( discord, data ) =>
+    {
+        discord.channels.get( discordChannels["PlayerMovedChunk"] ).send( data.player.username +" has moved to "+ data.newChunk ); 
+        console.log( data.player.username +" has moved to chunk "+ data.newChunk );
+    },
+
+    'PlayerKilled' : ( discord, data ) =>
+    {
+        discord.channels.get( discordChannels["PlayerKilled"] ).send( data.killerPlayer.username +" has killed "+ data.killedPlayer.username +" in cold blood" );
+        discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( data.killerPlayer.username +" has _slaughtered_ "+ data.killedPlayer.username +" in cold blood" );
+        console.log( "player kill" );
+        console.log( data );
+    },
+
+    'TradeDeckUsed' : ( discord, data ) =>
+    {
+        console.log( "trade deck used" );
+        console.log( data );
+    },
+
+    'CreatureKilled' : ( discord, data ) =>
+    {
+        console.log( "creature murdered" );
+        console.log( data );
+    },
+
+    'CreatureSpawned' : ( discord, data ) =>
+    {
+        console.log( "creature has spawned" );
+        console.log( data );
+    }
+
+}   
         
 
 //Run the program
@@ -46,7 +93,7 @@ async function main()
         discord.on('ready', resolve);
         discord.login(botToken);
     });
-
+    
     //Discord command and message management (todo: move to own lib)
     discord.on('message', message =>
     {
@@ -78,12 +125,21 @@ async function main()
         //To add callback support for events, we'll use the "BasicWrapper" provided by att-websockets.
         var wrapper = new BasicWrapper(connection);
 
-        //Subscribe to "PlayerMovedChunk"
+        // Simple subscriptions
+        await wrapper.subscribe("PlayerJoined", data => { logMessage["PlayerJoined"]( discord, data ); })
+        await wrapper.subscribe("PlayerLeft", data => { logMessage["PlayerLeft"]( discord, data ); })
+        await wrapper.subscribe("PlayerKilled", data => { logMessage["PlayerKilled"]( discord, data ); })
+        await wrapper.subscribe("TradeDeckUsed", data => { logMessage["TradeDeckUsed"]( discord, data ); })
+        await wrapper.subscribe("CreatureKilled", data => { logMessage["CreatureKilled"]( discord, data ); })
+        await wrapper.subscribe("CreatureSpawned", data => { logMessage["CreatureSpawned"]( discord, data ); });
+
+        // More complex subscriptions
         await wrapper.subscribe("PlayerMovedChunk", data =>
         { 
             //Log out the players movement
-            console.log(data.player.username + " moved to " + data.newChunk);
+            logMessage["PlayerMovedChunk"]( discord, data );
             locations[data.player.username] = data.newChunk;
         });
     });
+    // end bot.run()
 }
