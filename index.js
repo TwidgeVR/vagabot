@@ -1,8 +1,8 @@
 //Load required classes.
 const { WebsocketBot } = require('att-bot-core');
 const { BasicWrapper } = require('att-websockets');
-const { Discord } = require('discord.js');
-const { moment } = require('moment');
+const Discord = require('discord.js');
+const moment = require('moment');
 
 //Load information from credentials and config
 const { username, password, botToken } = require("./credentials");
