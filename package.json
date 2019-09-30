@@ -4,6 +4,7 @@
   "description": "A Township Tale NodeJS Bot",
   "main": "index.js",
   "scripts": {
+    "start": "node .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,5 +21,11 @@
   "bugs": {
     "url": "https://github.com/edencomputing/vagabot/issues"
   },
-  "homepage": "https://github.com/edencomputing/vagabot#readme"
+  "homepage": "https://github.com/edencomputing/vagabot#readme",
+  "dependencies": {
+    "alta-jsapi": "git+https://github.com/alta-vr/alta-jsapi.git",
+    "att-bot-core": "git+https://github.com/alta-vr/ATT-Bot-JS.git",
+    "discord.js": "^11.5.1"
+  },
+  "devDependencies": {}
 }
