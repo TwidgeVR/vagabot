@@ -4,6 +4,9 @@ const { BasicWrapper } = require('att-websockets');
 const Discord = require('discord.js');
 const moment = require('moment');
 
+//Import modules
+const { Servers } = require('alta-jsapi');
+
 //Load information from credentials and config
 const { username, password, botToken } = require("./credentials");
 const { targetServers, discordPrefix, discordChannels } = require("./config");
@@ -12,9 +15,21 @@ var locations = {};
 var botConnection;
 var activePlayers = {};
 
+//Some utility and helper functions and prototypes
 function ts()
 { 
     return "["+ moment().format("h:mm:ss A") +"] " 
+}
+
+function strrep( str, n )
+{
+    if ( n < 1 ) return '';
+    var result = str;
+    while( n-- > 0 )
+    {
+        result += str;
+    }
+    return result;
 }
 
 //Command list
@@ -39,6 +54,37 @@ const commands = {
         } else {
             message.channel.send("No location known for "+ username);
         }
+    },
+
+    'servers': async function (message, args)
+    {
+        var servers = await Servers.getOnline();
+
+        if ( !!servers )
+        {
+            var longest = 0;
+            for( var i in servers )
+            {
+                if ( servers[i].name.length > longest )
+                {
+                    longest = servers[i].name.length;
+                }
+            }
+
+            var serverNameLen = longest + 1;
+            var listTable =  "| Servers"+ strrep(' ', (serverNameLen - 7)) +"| Players\n";
+                listTable += "|"+ strrep('-', (serverNameLen + 1) ) +"|---------\n";
+            for ( var i in servers )
+            {
+                listTable += "| "+ servers[i].name + strrep(' ', ( serverNameLen - servers[i].name.length )) +"| "+ servers[i].online_players.length +"\n";
+            }
+        
+            message.channel.send( '```'+ listTable +'```' );
+                   
+        } else {
+            message.channel.send("No servers appear to be online, perhaps it's patch day?");
+        }
+        console.log( servers );
     },
 
     'playerlist': async function (message, args)
