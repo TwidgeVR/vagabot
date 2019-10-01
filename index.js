@@ -9,6 +9,8 @@ const { username, password, botToken } = require("./credentials");
 const { targetServers, discordPrefix, discordChannels } = require("./config");
 
 var locations = {};
+var botConnection;
+var activePlayers = {};
 
 function ts()
 { 
@@ -17,18 +19,44 @@ function ts()
 
 //Command list
 const commands = {
-    'ping': (message, username) =>
+    'ping': (message, args) =>
     {
         message.channel.send("pong");
     },
 
-    'where': (message, username) =>
+    'where': (message, args) =>
     {
+        var argv = args.pop();
+        while ( argv.toLower === 'is' )
+        {
+            argv = args.pop();
+        }
+        var username = argv;
+
         if (!!locations[username])
         {
             message.channel.send(username +" is at "+ locations[username]);
         } else {
             message.channel.send("No location known for "+ username);
+        }
+    },
+
+    'playerlist': async function (message, args)
+    {
+        if (botConnection != undefined)
+        {
+            var playerList = await botConnection.wrapper.send("player list");
+            var result = playerList.Result;
+            console.log( playerList );
+
+            var fplist = "| The Vatican \n";
+               fplist += "|--------------\n";
+            for( var ind in result )
+            {
+                fplist += "|\t"+ result[ind].username +"\n";
+            }
+
+            message.channel.send( fplist );
         }
     }
 }
@@ -98,9 +126,6 @@ async function main()
 {
     console.log( ts() + "bot is starting" );
 
-    //Create a new ATT bot
-    const bot = new WebsocketBot();
-
     //Connect to discord
     const discord = new Discord.Client();
     await new Promise( resolve =>
@@ -115,31 +140,41 @@ async function main()
         if ( message.content.length > 0 && message.content.startsWith( discordPrefix ) )
         {
             var tmessage = message.content.substring(discordPrefix.length).trim();
-            var space = tmessage.indexOf(' ');
+            var args = tmessage.split(' ');
 
-            if ( space >= 0 )
+            if ( args && args.length >= 1 )
             {
-                var command = tmessage.substring(0, space);
+                var command = args[0];
                 var commandFunction = commands[command];
-
                 if (!!commandFunction)
                 {
-                    commandFunction(message, tmessage.substring(space).trim());
+                    commandFunction(message, args, tmessage);
                 }
             }
         }
     });
                     
 
+    //Create a new ATT bot for administration
+    const bot = new WebsocketBot();
     //Alta Login
     await bot.login(username, password);
 
     //When any of the 'targetServers' are available, a connection is automatically created.
     await bot.run(test => targetServers.includes(test.id), async (server, connection) =>
     {
+        console.log( server );
+        console.log( connection );
+
         //By default, connections simply receive commands, and emit messages.
         //To add callback support for events, we'll use the "BasicWrapper" provided by att-websockets.
         var wrapper = new BasicWrapper(connection);
+        
+        botConnection = 
+        {
+            "connection" : connection,
+            "wrapper" : wrapper
+        }
 
         // Simple subscriptions
         await wrapper.subscribe("PlayerJoined", data => { logMessage["PlayerJoined"]( discord, data ); })
@@ -160,4 +195,5 @@ async function main()
         });
     });
     // end bot.run()
+
 }
