@@ -117,7 +117,12 @@ const commands = {
 
         if ( listTable === '' )
         {
-            message.channel.send('```No server found matching "'+ serverMatch +'"```' );
+            if ( mustMatch )
+            {
+                message.channel.send('```No server found matching "'+ mustMatch +'"```');
+            } else {
+                message.channel.send('```No servers were found online, is it patch day?```');
+            }
         } else {
             message.channel.send('```'+ listTable +'```');
         }
