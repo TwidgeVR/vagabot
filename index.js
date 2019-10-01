@@ -84,7 +84,43 @@ const commands = {
         } else {
             message.channel.send("No servers appear to be online, perhaps it's patch day?");
         }
-        console.log( servers );
+    },
+
+    'players': async function (message, args)
+    {
+        var servers = await Servers.getOnline();
+        var listTable = '';
+
+        var command = args.shift();
+        var mustMatch = args.join(' ');
+
+        for( var i in servers )
+        {
+            if ( mustMatch )
+            {
+                var re = new RegExp( mustMatch, 'ig' );
+                if ( !servers[i].name.match( re ) )
+                {
+                    continue;
+                }
+            }
+            listTable += "| "+ servers[i].name +"\n";
+            listTable += "|"+ strrep('-', (servers[i].name.length + 1)) +"\n";
+                    
+            var pOnline = servers[i].online_players;
+            for( var n in pOnline )
+            {
+                listTable += "| "+ pOnline[n].username +"\n";
+            }
+            listTable += "\n";
+        }
+
+        if ( listTable === '' )
+        {
+            message.channel.send('```No server found matching "'+ serverMatch +'"```' );
+        } else {
+            message.channel.send('```'+ listTable +'```');
+        }
     },
 
     'playerlist': async function (message, args)
