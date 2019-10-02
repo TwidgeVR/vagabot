@@ -15,7 +15,7 @@ var locations = {};
 var botConnection;
 var activePlayers = {};
 
-//Some utility and helper functions and prototypes
+//Some utility helper functions and prototypes
 function ts()
 { 
     return "["+ moment().format("h:mm:ss A") +"] " 
@@ -41,17 +41,16 @@ const commands = {
 
     'where': (message, args) =>
     {
-        var argv = args.pop();
-        while ( argv.toLower === 'is' )
+        while ( args.length && args[0].toLowerCase() === "is" )
         {
-            argv = args.pop();
+            argv = args.shift();
         }
-        var username = argv;
+        var username = args.join(' ');
 
-        if (!!locations[username])
+        if ( username && !!locations[username] )
         {
             message.channel.send(username +" is at "+ locations[username]);
-        } else {
+        } else if ( username ){
             message.channel.send("No location known for "+ username);
         }
     },
@@ -91,7 +90,11 @@ const commands = {
         var servers = await Servers.getOnline();
         var listTable = '';
 
-        var command = args.shift();
+        while ( args[0].toLowerCase() === "online" || args[0].toLowerCase() === "in" || args[0].toLowerCase() === "on" )
+        {
+            args.shift();
+        }
+
         var mustMatch = args.join(' ');
 
         for( var i in servers )
@@ -231,7 +234,7 @@ async function main()
 
             if ( args && args.length >= 1 )
             {
-                var command = args[0];
+                var command = args.shift();
                 var commandFunction = commands[command];
                 if (!!commandFunction)
                 {
