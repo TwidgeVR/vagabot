@@ -177,13 +177,13 @@ const logMessage = {
         if ( data.killerPlayer != undefined ) 
         {
             discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killerPlayer.username +" has killed "+ data.killedPlayer.username +" in cold blood" );
-            discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( data.killerPlayer.username +" has just _slaughtered_ "+ data.killedPlayer.username +" in cold blood" );
+            discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( data.killerPlayer.username +" has just _slaughtered_ "+ data.killedPlayer.username +", in cold blood?" );
         } else {
-            if ( data.toolWielder != undefined )
+            if ( data.toolWielder )
             {
                 discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killedPlayer.username +" was killed by: "+ data.toolWielder );
             } else {
-                discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killedPlayer.username +" has suddenly died" );
+                discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killedPlayer.username +" has suddenly died from mysterious self-inflicted circimstances" );
             }
         }
     },
@@ -269,7 +269,7 @@ async function main()
         // Simple subscriptions
         await wrapper.subscribe("PlayerJoined", data => { logMessage["PlayerJoined"]( discord, data ); })
         await wrapper.subscribe("PlayerLeft", data => { logMessage["PlayerLeft"]( discord, data ); })
-        //await wrapper.subscribe("PlayerKilled", data => { logMessage["PlayerKilled"]( discord, data ); })
+        await wrapper.subscribe("PlayerKilled", data => { logMessage["PlayerKilled"]( discord, data ); })
         await wrapper.subscribe("TradeDeckUsed", data => { logMessage["TradeDeckUsed"]( discord, data ); })
         await wrapper.subscribe("CreatureKilled", data => { logMessage["CreatureKilled"]( discord, data ); })
 
