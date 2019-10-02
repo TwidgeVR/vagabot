@@ -90,7 +90,7 @@ const commands = {
         var servers = await Servers.getOnline();
         var listTable = '';
 
-        while ( args[0].toLowerCase() === "online" || args[0].toLowerCase() === "in" || args[0].toLowerCase() === "on" )
+        while ( args.length && ( args[0].toLowerCase() === "online" || args[0].toLowerCase() === "in" || args[0].toLowerCase() === "on" ) )
         {
             args.shift();
         }
