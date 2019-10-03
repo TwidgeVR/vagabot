@@ -11,7 +11,8 @@ const { Servers } = require('alta-jsapi');
 const { username, password, botToken } = require("./credentials");
 const { targetServers, discordPrefix, discordChannels } = require("./config");
 
-var locations = {};
+var playerLocations = {};
+var chunkHistory = {};
 var botConnection;
 var activePlayers = {};
 
@@ -47,9 +48,9 @@ const commands = {
         }
         var username = args.join(' ');
 
-        if ( username && !!locations[username] )
+        if ( username && !!playerLocations[username] )
         {
-            message.channel.send(username +" is at "+ locations[username]);
+            message.channel.send(username +" is at "+ playerLocations[username]);
         } else if ( username ){
             message.channel.send("No location known for "+ username);
         }
@@ -148,7 +149,34 @@ const commands = {
 
             message.channel.send( fplist );
         }
-    }
+    },
+
+    'zone': async function (message, args)
+    {
+        switch( args.shift() )
+        {
+            case 'history':
+                var chunk = args.join(' ');
+                if ( !!chunkHistory[ chunk ] )
+                {
+                    var response  = "| Players who have visited zone '"+ chunk +"'\n";
+                        response += "|---------------------------"+ strrep( '-', chunk.length ) +"-\n";
+        
+                    var chunkList = chunkHistory[ chunk ];
+                    for ( var i in chunkList )
+                    {
+                        var timestamp = moment( chunkList[i].ts );
+                        response += "| ["+ moment(timestamp).format( "YYYY/MM/DD HH:mm:ss" ) +"] - "+ chunkList[i].username +"\n";
+                    }
+
+                    message.channel.send('```'+ response +'```');
+                } else {
+                    message.channel.send('```'+ "No history for zone '"+ chunk +"'"+ '```');
+                }
+            break;
+
+        }
+    }       
 }
 
 const logMessage = {
@@ -177,7 +205,7 @@ const logMessage = {
         if ( data.killerPlayer != undefined ) 
         {
             discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killerPlayer.username +" has killed "+ data.killedPlayer.username +" in cold blood" );
-            discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( data.killerPlayer.username +" has just _slaughtered_ "+ data.killedPlayer.username +", in cold blood?" );
+            discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killerPlayer.username +" has just _slaughtered_ "+ data.killedPlayer.username +", in cold blood?" +'```' );
         } else {
             if ( data.toolWielder )
             {
@@ -281,7 +309,12 @@ async function main()
         { 
             //Log out the players movement
             logMessage["PlayerMovedChunk"]( discord, data );
-            locations[data.player.username] = data.newChunk;
+            playerLocations[data.player.username] = data.newChunk;
+            if ( !chunkHistory[ data.newChunk ] )
+            {
+                chunkHistory[ data.newChunk ] = [];
+            }
+            chunkHistory[ data.newChunk ].unshift( { "ts": moment(), "username": data.player.username } );
         });
     });
     // end bot.run()
