@@ -46,6 +46,8 @@ const commands = {
         {
             argv = args.shift();
         }
+
+        
         var username = args.join(' ');
 
         if ( username && !!playerLocations[username] )
@@ -132,6 +134,8 @@ const commands = {
         }
     },
 
+    // this pulls data from a WebsocketBot using the active connections
+    // deprecated in favor of the players command using Server.getOnline
     'playerlist': async function (message, args)
     {
         if (botConnection != undefined)
@@ -176,7 +180,35 @@ const commands = {
             break;
 
         }
-    }       
+    },       
+
+    'player' : async function ( message, args )
+    {
+        switch( args.shift() )
+        {
+            case 'path':
+                // Return known history of player movements
+
+                var username = args.join(' ');
+                if ( activePlayers[ username ] )
+                {
+                    var playerData = activePlayers[ username ]
+
+                    var response  = '| Path History for '+ username +"\n";
+                        response += '|------------------'+ strrep('-', username.length+1) +"\n";
+                    for( var i in playerData.pathHistory )
+                    {
+                        var elem = playerData.pathHistory[i];
+                        response += "|["+ moment( elem.ts ).format( "YYYY/MM/DD HH:mm:ss") +"] "+ elem.zone +"\n";
+                    }
+                    message.channel.send('```'+ response +"```");
+                } else {
+                    message.channel.send('```'+ "No player data found for "+ username +'```');
+                }
+            break;
+            
+        }
+    }
 }
 
 const logMessage = {
@@ -194,7 +226,8 @@ const logMessage = {
 
     'PlayerMovedChunk' : ( discord, data ) =>
     {
-        discord.channels.get( discordChannels["PlayerMovedChunk"] ).send( ts() + data.player.username +" has moved to "+ data.newChunk ); 
+        //discord.channels.get( discordChannels["PlayerMovedChunk"] ).send( ts() + data.player.username +" has moved to "+ data.newChunk ); 
+        console.log( data );
         console.log( ts() + data.player.username +" has moved to chunk "+ data.newChunk );
     },
 
@@ -205,13 +238,13 @@ const logMessage = {
         if ( data.killerPlayer != undefined ) 
         {
             discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killerPlayer.username +" has killed "+ data.killedPlayer.username +" in cold blood" );
-            discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killerPlayer.username +" has just _slaughtered_ "+ data.killedPlayer.username +", in cold blood?" +'```' );
+            discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killerPlayer.username +" has murdered "+ data.killedPlayer.username +'```' );
         } else {
             if ( data.toolWielder )
             {
                 discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killedPlayer.username +" was killed by: "+ data.toolWielder );
             } else {
-                discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killedPlayer.username +" has suddenly died from mysterious self-inflicted circimstances" );
+                discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killedPlayer.username +" has suddenly offed themselves" );
             }
         }
     },
@@ -307,6 +340,19 @@ async function main()
         // More complex subscriptions
         await wrapper.subscribe("PlayerMovedChunk", data =>
         { 
+            //Add the player to the players object if they haven't been seen yet
+            if ( !activePlayers[ data.player.username ] )
+            {
+                activePlayers[ data.player.username ] = 
+                {
+                    "id": data.player.id,
+                    "pathHistory" : [ { "ts" : moment(), "zone": data.newChunk } ]
+                }
+            } else {
+                activePlayers[ data.player.username ].pathHistory.push( { "ts": moment(), "zone": data.newChunk } );
+            }
+                            
+                
             //Log out the players movement
             logMessage["PlayerMovedChunk"]( discord, data );
             playerLocations[data.player.username] = data.newChunk;
