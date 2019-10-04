@@ -122,6 +122,7 @@ For example, the following are equivalent:
 
 - The bot sometimes does not reconnect after a 'paused' period, requiring a restart.
 
+- Some event subscriptions are particularly chatty, such as PlayerMovedChunk and CreatureSpawned, so by default are left disabled.
 
 ## Enjoy!
 
