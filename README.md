@@ -60,9 +60,11 @@ The bot uses two configuration files.  You may copy the *.example files provided
 ```
 
 Once configured, start the bot going with:
+
 `npm start`
 
-The bot spits a lot of data into the console currently.  If you wish to capture this for later perusal, and you're using linux (why wouldn't you be?!), you can pipe the poutput to a logfile
+The bot spits a lot of data into the console currently.  If you wish to capture this for later perusal, and you're using linux (why wouldn't you be?!), you can pipe the poutput to a logfile:
+
 `npm start 2>&1 >> vagabot.log`
 
 
@@ -92,7 +94,7 @@ Twidge was murdered by <eg. a spriggull>
 Darklingbird8 has suddenly died from mysterious self-inflicted circimstances
 ```
 
-- Gives status of A Township Tale public servers, and player lists
+- Gives status of A Township Tale servers and player lists
 ```
 !servers
 // returns a list of servers and current player count
