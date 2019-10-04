@@ -1,24 +1,23 @@
 # vagabot
 A Township Tale NodeJS bot
 
-This is a simple bot building on the att-discord-tracker bot example by Joel VDV, aka Narmdo:
+This is a simple bot building on the att-discord-tracker example by Joel VDV, aka Narmdo, aka King of ATT Meta:
 
 https://github.com/Narmdo/att-discord-tracker
 
 Using libraries provided by Alta VR:
 
-// ATT Websocket bot
-https://github.com/alta-vr/ATT-Bot-JS
+- ATT Websocket bot: https://github.com/alta-vr/ATT-Bot-JS
 
-// ATT websocket connection library
-https://github.com/alta-vr/att-websockets
+- ATT websocket connection library: https://github.com/alta-vr/att-websockets
 
-// Alta VR jsapi
-https://github.com/alta-vr/alta-jsapi
+- Alta VR jsapi: https://github.com/alta-vr/alta-jsapi
+
 
 ### Usage
 
 To start, install node/npm by following the excellent guide prepared by Joel here:
+
 https://paper.dropbox.com/doc/An-Introduction-to-ATT-Bots-sN2e61qvfnQ3yb7uoGbL5
 
 In short,
@@ -34,6 +33,7 @@ The bot uses two configuration files.  You may copy the *.example files provided
     "password" : "<your ATT password>",
     "botToken" : "<your bot's discord token>"
 }
+```
 
 - **config.json** - contains the list of A Township Tale servers to join, and the channel destinations for various notifications
 ```
