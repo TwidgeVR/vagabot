@@ -134,27 +134,6 @@ const commands = {
         }
     },
 
-    // this pulls data from a WebsocketBot using the active connections
-    // deprecated in favor of the players command using Server.getOnline
-    'playerlist': async function (message, args)
-    {
-        if (botConnection != undefined)
-        {
-            var playerList = await botConnection.wrapper.send("player list");
-            var result = playerList.Result;
-            console.log( playerList );
-
-            var fplist = "| The Vatican \n";
-               fplist += "|--------------\n";
-            for( var ind in result )
-            {
-                fplist += "|\t"+ result[ind].username +"\n";
-            }
-
-            message.channel.send( fplist );
-        }
-    },
-
     'zone': async function (message, args)
     {
         switch( args.shift() )
@@ -237,14 +216,16 @@ const logMessage = {
         console.log( data );
         if ( data.killerPlayer != undefined ) 
         {
-            discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killerPlayer.username +" has killed "+ data.killedPlayer.username +" in cold blood" );
+            discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killerPlayer.username +" has killed "+ data.killedPlayer.username );
             discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killerPlayer.username +" has murdered "+ data.killedPlayer.username +'```' );
         } else {
             if ( data.toolWielder )
             {
                 discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killedPlayer.username +" was killed by: "+ data.toolWielder );
+                discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killedPlayer.username +" was killed by: "+ data.toolWielder );
             } else {
                 discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killedPlayer.username +" has suddenly offed themselves" );
+                discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killedPlayer.username +" has suddenly offed themselves" +'```');
             }
         }
     },
