@@ -23,8 +23,9 @@ https://paper.dropbox.com/doc/An-Introduction-to-ATT-Bots-sN2e61qvfnQ3yb7uoGbL5
 In short,
 1. Install node/npm using the many methods available online.
 2. Install dependencies with `npm i`
+3. `mkdir data`
 
-The bot uses two configuration files.  You may copy the *.example files provided in the checkout, or create your own.
+The bot uses some JSON configuration files.  You may copy the *.example files provided in the checkout, or create your own.
 
 - **credentials.json** - this file contains the authentication information to connect to Alta API and to Discord
 ```
@@ -59,11 +60,20 @@ The bot uses two configuration files.  You may copy the *.example files provided
 }
 ```
 
+- **files.json** - contains the filenames for saving player and statistics
+```
+{
+    "playerFile" : "data/players.json"
+}
+```
+
+
 Once configured, start the bot going with:
 
 `npm start`
 
-The bot spits a lot of data into the console currently.  If you wish to capture this for later perusal, and you're using linux (why wouldn't you be?!), you can pipe the poutput to a logfile:
+
+The bot spits a lot of data into the console currently.  If you wish to capture this for later perusal, and you're using linux (why wouldn't you be?!), for now you can pipe the poutput to a logfile:
 
 `npm start 2>&1 >> vagabot.log`
 
