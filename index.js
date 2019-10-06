@@ -3,6 +3,7 @@ const { WebsocketBot } = require('att-bot-core');
 const { BasicWrapper } = require('att-websockets');
 const Discord = require('discord.js');
 const moment = require('moment');
+const fs = require('fs');
 
 //Import modules
 const { Servers } = require('alta-jsapi');
@@ -10,6 +11,7 @@ const { Servers } = require('alta-jsapi');
 //Load information from credentials and config
 const { username, password, botToken } = require("./credentials");
 const { targetServers, discordPrefix, discordChannels } = require("./config");
+const { playerFile } = require("./files");
 
 var playerLocations = {};
 var chunkHistory = {};
@@ -31,6 +33,29 @@ function strrep( str, n )
         result += str;
     }
     return result;
+}
+
+function loadJSON( file )
+{
+    try {
+        fs.accessSync( file );
+        var jsonObj = JSON.parse( fs.readFileSync( file ));
+        console.log("Loaded data from: "+ file );
+        return jsonObj;
+    } catch (e) {
+        console.log( "Unable to load data from file: "+ file +", "+ e );
+        return {};
+    }
+}
+
+function saveJSON( file, obj )
+{
+    try {
+        fs.writeFileSync( file, JSON.stringify( obj, null, 4 ));
+        console.log( "Saved data to file: "+ file );
+    } catch (e) {
+        console.log( "Unable to save to file: "+ file +", "+ e );
+    }
 }
 
 //Command list
@@ -55,6 +80,50 @@ const commands = {
             message.channel.send(username +" is at "+ playerLocations[username]);
         } else if ( username ){
             message.channel.send("No location known for "+ username);
+        }
+    },
+
+    'who': (message, args) =>
+    {
+        while( args.length && args[0].toLowerCase() === "is" )
+        {
+            argv = args.shift();
+        }
+
+        var username = args.join(' ');
+        if ( username && !!activePlayers[username] )
+        {
+            if ( activePlayers[username].bio !== undefined )
+            {
+                message.channel.send('```'+ username +" is "+ activePlayers[username].bio +'```');
+            } else {
+                message.channel.send('```'+ username +" does not have a bio"+ '```');
+            }
+        } else {
+            message.channel.send('```'+ "Unknown user: "+ username +'```');
+        }
+    },
+
+    'bio': (message, args) =>
+    {
+        var username = message.author.username;
+        if ( !!activePlayers[username] )
+        {
+            while ( args[0] === username || args[0] === "is" )
+            {
+                args.shift();
+            }
+            var bio = args.join(' ');
+        } else {            
+            username = args.shift();
+            var bio = args.join(' ');
+        }
+        if ( !!activePlayers[username] )
+        {
+            activePlayers[username].bio = bio;
+            message.channel.send('```'+ username +" is "+ activePlayers[username].bio +'```');
+        } else {
+            message.channel.send('```'+ "Unknown user: "+ username +'```');
         }
     },
 
@@ -258,6 +327,9 @@ async function main()
 {
     console.log( ts() + "bot is starting" );
 
+    // Load history from files
+    activePlayers = loadJSON( playerFile );
+
     //Connect to discord
     const discord = new Discord.Client();
     await new Promise( resolve =>
@@ -287,9 +359,8 @@ async function main()
     });
                     
 
-    //Create a new ATT bot for administration
-    const bot = new WebsocketBot();
     //Alta Login
+    const bot = new WebsocketBot();
     await bot.login(username, password);
 
     //When any of the 'targetServers' are available, a connection is automatically created.
@@ -308,8 +379,33 @@ async function main()
             "wrapper" : wrapper
         }
 
-        // Simple subscriptions
-        await wrapper.subscribe("PlayerJoined", data => { logMessage["PlayerJoined"]( discord, data ); })
+        for ( var i in server.online_players )
+        {
+            if ( !activePlayers[ server.online_players[i].username ] )
+            {
+                activePlayers[ server.online_players[i].username ] = 
+                {
+                    "id": server.online_players[i].id,
+                    "lastLogin": moment()
+                }
+
+                var data = { "user": { "id": server.online_players[i].id, "username" : server.online_players[i].username } };
+                logMessage["PlayerJoined"]( discord, data );
+            }
+        }
+        saveJSON( playerFile, activePlayers );
+
+        // Subscriptions
+        await wrapper.subscribe("PlayerJoined", data => { 
+            if ( !activePlayers[ data.user.username ] )
+            {
+                activePlayers[ data.user.username ] = { "id": data.user.id };
+            }
+            activePlayers[ data.user.username ].lastLogin = moment();
+            logMessage["PlayerJoined"]( discord, data ); 
+            save( playerFile, activePlayers );
+        });
+
         await wrapper.subscribe("PlayerLeft", data => { logMessage["PlayerLeft"]( discord, data ); })
         await wrapper.subscribe("PlayerKilled", data => { logMessage["PlayerKilled"]( discord, data ); })
         await wrapper.subscribe("TradeDeckUsed", data => { logMessage["TradeDeckUsed"]( discord, data ); })
@@ -318,21 +414,9 @@ async function main()
         // this one is kinda spammy as it covers all automatic spawns, including inanimate objects
         //await wrapper.subscribe("CreatureSpawned", data => { logMessage["CreatureSpawned"]( discord, data ); });
 
-        // More complex subscriptions
-        await wrapper.subscribe("PlayerMovedChunk", data =>
+        await wrapper.subscribe(" PlayerMovedChunk", data =>
         { 
-            //Add the player to the players object if they haven't been seen yet
-            if ( !activePlayers[ data.player.username ] )
-            {
-                activePlayers[ data.player.username ] = 
-                {
-                    "id": data.player.id,
-                    "pathHistory" : [ { "ts" : moment(), "zone": data.newChunk } ]
-                }
-            } else {
-                activePlayers[ data.player.username ].pathHistory.push( { "ts": moment(), "zone": data.newChunk } );
-            }
-                            
+            activePlayers[ data.player.username ].pathHistory.push( { "ts": moment(), "zone": data.newChunk } );
                 
             //Log out the players movement
             logMessage["PlayerMovedChunk"]( discord, data );
