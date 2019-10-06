@@ -23,7 +23,6 @@ https://paper.dropbox.com/doc/An-Introduction-to-ATT-Bots-sN2e61qvfnQ3yb7uoGbL5
 In short,
 1. Install node/npm using the many methods available online.
 2. Install dependencies with `npm i`
-3. `mkdir data`
 
 The bot uses some JSON configuration files.  You may copy the *.example files provided in the checkout, or create your own.
 
