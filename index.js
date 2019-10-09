@@ -1,22 +1,31 @@
 //Load required classes.
+const { Servers } = require('alta-jsapi');
 const { WebsocketBot } = require('att-bot-core');
 const { BasicWrapper } = require('att-websockets');
 const Discord = require('discord.js');
 const moment = require('moment');
 const fs = require('fs');
 
-//Import modules
-const { Servers } = require('alta-jsapi');
+//Local classes
+const Player = require('./src/player.js');
+const Subscriptions = require('./src/subscriptions.js');
 
 //Load information from credentials and config
 const { username, password, botToken } = require("./credentials");
 const { targetServers, discordPrefix, discordChannels } = require("./config");
 const { playerFile } = require("./files");
 
+
+//NeDB
+var Datastore = require('nedb');
+var players = new Datastore({ filename : 'data/players.db', autoload: true });
+var kills = new Datastore({ filename : 'data/playerkills.db', autoload: true });
+players.ensureIndex({ fieldName: 'id', unique: 'true' });
+
 var playerLocations = {};
 var chunkHistory = {};
 var botConnection;
-var activePlayers = {};
+var oplayers = [];
 
 //Some utility helper functions and prototypes
 function ts()
@@ -91,11 +100,11 @@ const commands = {
         }
 
         var username = args.join(' ');
-        if ( username && !!activePlayers[username] )
+        if ( username && !!oplayers[username] )
         {
-            if ( activePlayers[username].bio !== undefined )
+            if ( oplayers[username].bio !== undefined )
             {
-                message.channel.send('```'+ username +" is "+ activePlayers[username].bio +'```');
+                message.channel.send('```'+ username +" is "+ oplayers[username].bio +'```');
             } else {
                 message.channel.send('```'+ username +" does not have a bio"+ '```');
             }
@@ -107,7 +116,7 @@ const commands = {
     'bio': (message, args) =>
     {
         var username = message.author.username;
-        if ( !!activePlayers[username] )
+        if ( !!oplayers[username] )
         {
             while ( args[0] === username || args[0] === "is" )
             {
@@ -118,10 +127,10 @@ const commands = {
             username = args.shift();
             var bio = args.join(' ');
         }
-        if ( !!activePlayers[username] )
+        if ( !!oplayers[username] )
         {
-            activePlayers[username].bio = bio;
-            message.channel.send('```'+ username +" is "+ activePlayers[username].bio +'```');
+            oplayers[username].bio = bio;
+            message.channel.send('```'+ username +" is "+ oplayers[username].bio +'```');
         } else {
             message.channel.send('```'+ "Unknown user: "+ username +'```');
         }
@@ -238,9 +247,9 @@ const commands = {
                 // Return known history of player movements
 
                 var username = args.join(' ');
-                if ( activePlayers[ username ] )
+                if ( oplayers[ username ] )
                 {
-                    var playerData = activePlayers[ username ]
+                    var playerData = oplayers[ username ]
 
                     var response  = '| Path History for '+ username +"\n";
                         response += '|------------------'+ strrep('-', username.length+1) +"\n";
@@ -259,65 +268,19 @@ const commands = {
     }
 }
 
-const logMessage = {
-    'PlayerJoined' : ( discord, data ) =>
-    {
-        discord.channels.get( discordChannels["PlayerJoined"] ).send( ts() + data.user.username +" joined the server" );
-        console.log( ts() + data.user.username +" joined the server" );
-    },
 
-    'PlayerLeft' : ( discord, data ) =>
+function loadPlayers()
+{
+    pData = loadJSON( playerFile );
+    console.log( pData );
+    if ( pData )
     {
-        discord.channels.get( discordChannels["PlayerLeft"] ).send( ts() + data.user.username +" left the server" );
-        console.log( ts() + data.user.username +" left the server" );
-    },
-
-    'PlayerMovedChunk' : ( discord, data ) =>
-    {
-        //discord.channels.get( discordChannels["PlayerMovedChunk"] ).send( ts() + data.player.username +" has moved to "+ data.newChunk ); 
-        console.log( data );
-        console.log( ts() + data.player.username +" has moved to chunk "+ data.newChunk );
-    },
-
-    'PlayerKilled' : ( discord, data ) =>
-    {
-        console.log( ts() + "player kill" );
-        console.log( data );
-        if ( data.killerPlayer != undefined ) 
+        for ( var i in pData )
         {
-            discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killerPlayer.username +" has killed "+ data.killedPlayer.username );
-            discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killerPlayer.username +" has murdered "+ data.killedPlayer.username +'```' );
-        } else {
-            if ( data.toolWielder )
-            {
-                discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killedPlayer.username +" was killed by: "+ data.toolWielder );
-                discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killedPlayer.username +" was killed by: "+ data.toolWielder );
-            } else {
-                discord.channels.get( discordChannels["PlayerKilled"] ).send( ts() + data.killedPlayer.username +" has suddenly offed themselves" );
-                discord.channels.get( discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killedPlayer.username +" has suddenly offed themselves" +'```');
-            }
+            oplayers.push( new Player( pData[i].id, pData[i].username ));
         }
-    },
-
-    'TradeDeckUsed' : ( discord, data ) =>
-    {
-        console.log( ts() + "trade deck used" );
-        console.log( data );
-    },
-
-    'CreatureKilled' : ( discord, data ) =>
-    {
-        console.log( ts() + "creature murdered" );
-        console.log( data );
-    },
-
-    'CreatureSpawned' : ( discord, data ) =>
-    {
-        console.log( ts() + "creature has spawned" );
-        console.log( data );
     }
-
-}   
+}
         
 
 //Run the program
@@ -327,8 +290,12 @@ async function main()
 {
     console.log( ts() + "bot is starting" );
 
-    // Load history from files
-    activePlayers = loadJSON( playerFile );
+    // Players in database
+    players.find({}).exec( function( err, docs ) { console.log( docs );} );
+    // Load players from file
+    loadPlayers();
+    console.log( players );
+    
 
     //Connect to discord
     const discord = new Discord.Client();
@@ -361,7 +328,9 @@ async function main()
 
     //Alta Login
     const bot = new WebsocketBot();
-    await bot.login(username, password);
+    //Use a hashed password, SHA512
+    await bot.loginWithHash(username, password);
+    var subs = new Subscriptions( discordChannels, players, kills );
 
     //When any of the 'targetServers' are available, a connection is automatically created.
     await bot.run(test => targetServers.includes(test.id), async (server, connection) =>
@@ -379,54 +348,38 @@ async function main()
             "wrapper" : wrapper
         }
 
+        console.log( ts() +"loading inital players" );
         for ( var i in server.online_players )
         {
-            if ( !activePlayers[ server.online_players[i].username ] )
-            {
-                activePlayers[ server.online_players[i].username ] = 
-                {
-                    "id": server.online_players[i].id,
-                    "lastLogin": moment()
-                }
-
-                var data = { "user": { "id": server.online_players[i].id, "username" : server.online_players[i].username } };
-                logMessage["PlayerJoined"]( discord, data );
-            }
+            let oplayer = server.online_players[i];
+            subs.PlayerJoined( discord, { "user": { "id": oplayer.id, "username": oplayer.username } });
         }
-        saveJSON( playerFile, activePlayers );
 
         // Subscriptions
-        await wrapper.subscribe("PlayerJoined", data => { 
-            if ( !activePlayers[ data.user.username ] )
-            {
-                activePlayers[ data.user.username ] = { "id": data.user.id };
-            }
-            activePlayers[ data.user.username ].lastLogin = moment();
-            logMessage["PlayerJoined"]( discord, data ); 
-            save( playerFile, activePlayers );
-        });
-
-        await wrapper.subscribe("PlayerLeft", data => { logMessage["PlayerLeft"]( discord, data ); })
-        await wrapper.subscribe("PlayerKilled", data => { logMessage["PlayerKilled"]( discord, data ); })
-        await wrapper.subscribe("TradeDeckUsed", data => { logMessage["TradeDeckUsed"]( discord, data ); })
-        await wrapper.subscribe("CreatureKilled", data => { logMessage["CreatureKilled"]( discord, data ); })
+        await wrapper.subscribe("PlayerJoined", data => { subs.PlayerJoined( discord, data ) }); 
+        await wrapper.subscribe("PlayerLeft", data => { subs.PlayerLeft( discord, data ); });
+        await wrapper.subscribe("PlayerKilled", data => { subs.PlayerKilled( discord, data ); });
+        await wrapper.subscribe("TradeDeckUsed", data => { subs.TradeDeckUsed( discord, data ); });
+        await wrapper.subscribe("CreatureKilled", data => { subs.CreatureKilled( discord, data ); });
+        await wrapper.subscribe("PlayerMovedChunk", data => { subs.PlayerMovedChunk( discord, data ); });
 
         // this one is kinda spammy as it covers all automatic spawns, including inanimate objects
         //await wrapper.subscribe("CreatureSpawned", data => { logMessage["CreatureSpawned"]( discord, data ); });
 
+/*
         await wrapper.subscribe(" PlayerMovedChunk", data =>
         { 
-            activePlayers[ data.player.username ].pathHistory.push( { "ts": moment(), "zone": data.newChunk } );
-                
+            var activePlayer = arr.find( o => o.id === data.user.id );
             //Log out the players movement
             logMessage["PlayerMovedChunk"]( discord, data );
-            playerLocations[data.player.username] = data.newChunk;
+            //playerLocations[data.player.username] = data.newChunk;
             if ( !chunkHistory[ data.newChunk ] )
             {
                 chunkHistory[ data.newChunk ] = [];
             }
             chunkHistory[ data.newChunk ].unshift( { "ts": moment(), "username": data.player.username } );
         });
+*/
     });
     // end bot.run()
 
