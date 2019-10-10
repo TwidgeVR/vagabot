@@ -44,29 +44,6 @@ function strrep( str, n )
     return result;
 }
 
-function loadJSON( file )
-{
-    try {
-        fs.accessSync( file );
-        var jsonObj = JSON.parse( fs.readFileSync( file ));
-        console.log("Loaded data from: "+ file );
-        return jsonObj;
-    } catch (e) {
-        console.log( "Unable to load data from file: "+ file +", "+ e );
-        return {};
-    }
-}
-
-function saveJSON( file, obj )
-{
-    try {
-        fs.writeFileSync( file, JSON.stringify( obj, null, 4 ));
-        console.log( "Saved data to file: "+ file );
-    } catch (e) {
-        console.log( "Unable to save to file: "+ file +", "+ e );
-    }
-}
-
 //Command list
 const commands = {
     'ping': (message, args) =>
@@ -119,6 +96,18 @@ const commands = {
 
     'bio': (message, args) =>
     {
+        function updatePlayerBio( playerid, bio )
+        {
+            players.update({ id: playerid }, { $set: { bio: bio } }, {}, function( err, numReplaced ) {
+                if ( err )
+                {
+                    console.log( err );
+                } else {
+                    message.channel.send('```'+ username +" is "+ bio +'```');
+                }
+            });
+        }
+
         var username = message.author.username;
         players.findOne({ username: username }, function( err, player ) {
             if ( err ) {
@@ -132,22 +121,19 @@ const commands = {
                     args.shift();
                 }
                 var bio = args.join(' ');
+                updatePlayerBio( player.id, bio );
             } else {            
                 username = args.shift();
+                while( args[0] === "is" ) { args.shift(); }
                 var bio = args.join(' ');
-            }
-            if ( player )
-            {
-                players.update({ id: player.id }, { $set: { bio: bio } }, {}, function( err, numReplaced ) {
-                    if ( err )
+                players.findOne({ username, username }, function( err, player ) {
+                    if ( player )
                     {
-                        console.log( err );
+                        updatePlayerBio( player.id, bio )
                     } else {
-                        message.channel.send('```'+ username +" is "+ bio +'```');
+                        message.channel.send('```'+ "Unknown user: "+ username +'```');
                     }
                 });
-            } else {
-                message.channel.send('```'+ "Unknown user: "+ username +'```');
             }
         });
     },
@@ -292,6 +278,27 @@ const commands = {
     }
 }
 
+function splitArgs( args )
+{
+    let spaceChars = '#s#';
+    // If an exact match of the space character exists in the string, make it more unique
+    while( args.indexOf( spaceChars ) > -1 ) { spaceChars += '|'; }
+
+    // replace spaces which are inside quotes with the spaceChar placeholder
+    let mangleargs = args.replace( /"([^"]*)"?/g, ( match, cap ) => {
+        return cap.replace(/\s/, spaceChars );
+    });
+
+    // split the padded string on actual spaces
+    let newargs = mangleargs.split( /\ +/ );
+
+    // replace the spaceChar in any matching elements with actual spaces
+    let reg = new RegExp( spaceChars, 'g' );
+    let argarr = newargs.map( ( x ) => { return x.replace( reg, ' ' ); });
+
+    return argarr;
+}
+
 
 
 //Run the program
@@ -302,8 +309,7 @@ async function main()
     console.log( ts() + "bot is starting" );
 
     // Players in database
-    players.find({}).exec( function( err, docs ) { console.log( docs );} );
-    console.log( players );
+    //players.find({}).exec( function( err, docs ) { console.log( docs ); });
 
     //Connect to discord
     const discord = new Discord.Client();
@@ -319,7 +325,8 @@ async function main()
         if ( message.content.length > 0 && message.content.startsWith( discordPrefix ) )
         {
             var tmessage = message.content.substring(discordPrefix.length).trim();
-            var args = tmessage.split(' ');
+
+            var args = splitArgs( tmessage );
 
             if ( args && args.length >= 1 )
             {
@@ -371,23 +378,6 @@ async function main()
         await wrapper.subscribe("CreatureKilled", data => { subs.CreatureKilled( discord, data ); });
         await wrapper.subscribe("PlayerMovedChunk", data => { subs.PlayerMovedChunk( discord, data ); });
 
-        // this one is kinda spammy as it covers all automatic spawns, including inanimate objects
-        //await wrapper.subscribe("CreatureSpawned", data => { logMessage["CreatureSpawned"]( discord, data ); });
-
-/*
-        await wrapper.subscribe(" PlayerMovedChunk", data =>
-        { 
-            var activePlayer = arr.find( o => o.id === data.user.id );
-            //Log out the players movement
-            logMessage["PlayerMovedChunk"]( discord, data );
-            //playerLocations[data.player.username] = data.newChunk;
-            if ( !chunkHistory[ data.newChunk ] )
-            {
-                chunkHistory[ data.newChunk ] = [];
-            }
-            chunkHistory[ data.newChunk ].unshift( { "ts": moment(), "username": data.player.username } );
-        });
-*/
     });
     // end bot.run()
 
