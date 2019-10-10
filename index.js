@@ -20,12 +20,12 @@ const { playerFile } = require("./files");
 var Datastore = require('nedb');
 var players = new Datastore({ filename : 'data/players.db', autoload: true });
 var kills = new Datastore({ filename : 'data/playerkills.db', autoload: true });
+var chunkHistory = new Datastore({ filename : 'data/chunkhistory.db', autoload: true });
 players.ensureIndex({ fieldName: 'id', unique: 'true' });
+players.persistence.setAutocompactionInterval( 129600 );
 
 var playerLocations = {};
-var chunkHistory = {};
 var botConnection;
-var oplayers = [];
 
 //Some utility helper functions and prototypes
 function ts()
@@ -100,40 +100,56 @@ const commands = {
         }
 
         var username = args.join(' ');
-        if ( username && !!oplayers[username] )
-        {
-            if ( oplayers[username].bio !== undefined )
+        players.findOne({ username: username }, function( err, player ) {
+            if ( err ) 
             {
-                message.channel.send('```'+ username +" is "+ oplayers[username].bio +'```');
+                console.log( err );
             } else {
-                message.channel.send('```'+ username +" does not have a bio"+ '```');
+                if ( !player )
+                {
+                    message.channel.send('```'+ "Unknown user: "+ username +'```');
+                } else if ( !player.bio ) { 
+                    message.channel.send('```'+ username +" does not have a bio"+ '```');
+                } else {
+                    message.channel.send('```'+ username +" is "+ player.bio +'```');
+                }
             }
-        } else {
-            message.channel.send('```'+ "Unknown user: "+ username +'```');
-        }
+        });
     },
 
     'bio': (message, args) =>
     {
         var username = message.author.username;
-        if ( !!oplayers[username] )
-        {
-            while ( args[0] === username || args[0] === "is" )
-            {
-                args.shift();
+        players.findOne({ username: username }, function( err, player ) {
+            if ( err ) {
+                console.log( err );
             }
-            var bio = args.join(' ');
-        } else {            
-            username = args.shift();
-            var bio = args.join(' ');
-        }
-        if ( !!oplayers[username] )
-        {
-            oplayers[username].bio = bio;
-            message.channel.send('```'+ username +" is "+ oplayers[username].bio +'```');
-        } else {
-            message.channel.send('```'+ "Unknown user: "+ username +'```');
-        }
+            console.log( player );
+            if ( player )
+            {
+                while ( args[0] === username || args[0] === "is" )
+                {
+                    args.shift();
+                }
+                var bio = args.join(' ');
+            } else {            
+                username = args.shift();
+                var bio = args.join(' ');
+            }
+            if ( player )
+            {
+                players.update({ id: player.id }, { $set: { bio: bio } }, {}, function( err, numReplaced ) {
+                    if ( err )
+                    {
+                        console.log( err );
+                    } else {
+                        message.channel.send('```'+ username +" is "+ bio +'```');
+                    }
+                });
+            } else {
+                message.channel.send('```'+ "Unknown user: "+ username +'```');
+            }
+        });
     },
 
     'servers': async function (message, args)
@@ -217,25 +233,26 @@ const commands = {
         switch( args.shift() )
         {
             case 'history':
-                var chunk = args.join(' ');
-                if ( !!chunkHistory[ chunk ] )
-                {
-                    var response  = "| Players who have visited zone '"+ chunk +"'\n";
-                        response += "|---------------------------"+ strrep( '-', chunk.length ) +"-\n";
-        
-                    var chunkList = chunkHistory[ chunk ];
-                    for ( var i in chunkList )
-                    {
-                        var timestamp = moment( chunkList[i].ts );
-                        response += "| ["+ moment(timestamp).format( "YYYY/MM/DD HH:mm:ss" ) +"] - "+ chunkList[i].username +"\n";
-                    }
-
-                    message.channel.send('```'+ response +'```');
-                } else {
-                    message.channel.send('```'+ "No history for zone '"+ chunk +"'"+ '```');
-                }
+                var chunkName = args.join(' ');
+                players.find({}, function( err, playerList ) {
+                    chunkHistory.find({ chunk: chunkName }).sort({ ts: -1 }).exec( function( err, chunklist ) {
+                        if ( err )
+                        {
+                            console.log( err );
+                        } else if ( !chunklist ) {
+                            message.channel.send('```'+ "No history for zone '"+ chunkName +"'"+ '```');
+                        } else {
+                            var response  = "| Players who have visited zone '"+ chunkName +"'\n";
+                                response += "|--------------------------------"+ strrep( '-', chunkName.length ) +"-\n";
+                            chunklist.forEach( function( ichunk ) {
+                                player = playerList.find( x => x.id === ichunk.player );
+                                response += "|["+ moment( ichunk.ts ).format("YYYY/MM/DD HH:mm:ss") +"] "+ player.username +"\n";
+                            });
+                            message.channel.send('```'+ response +'```');   
+                        }
+                    });
+                });
             break;
-
         }
     },       
 
@@ -245,23 +262,30 @@ const commands = {
         {
             case 'path':
                 // Return known history of player movements
-
                 var username = args.join(' ');
-                if ( oplayers[ username ] )
-                {
-                    var playerData = oplayers[ username ]
-
-                    var response  = '| Path History for '+ username +"\n";
-                        response += '|------------------'+ strrep('-', username.length+1) +"\n";
-                    for( var i in playerData.pathHistory )
+                players.findOne({ username: username }, function( err, player ) {
+                    if ( err ) 
                     {
-                        var elem = playerData.pathHistory[i];
-                        response += "|["+ moment( elem.ts ).format( "YYYY/MM/DD HH:mm:ss") +"] "+ elem.zone +"\n";
+                        message.channel.send('```'+ "No player data found for "+ username +'```');
+                    } else {
+                        chunkHistory.find({ player: player.id }).sort({ ts: -1 }).exec( function ( err, chunklist ) {
+                            if ( err )
+                            {
+                                console.log( err );
+                            } else if ( !!chunklist ) {
+                                var response  = '| Path History for '+ username +"\n";
+                                    response += '|------------------'+ strrep('-', username.length+1) +"\n";
+                                for ( var i in chunklist ) {
+                                    var elem = chunklist[i];
+                                    response += "|["+ moment( elem.ts ).format( "YYYY/MM/DD HH:mm:ss" ) +"] "+ elem.chunk +"\n";
+                                }
+                                message.channel.send('```'+ response +'```');
+                            } else {
+                                message.channel.send('```'+ "No player data found for "+ username +'```');
+                            }
+                        });
                     }
-                    message.channel.send('```'+ response +"```");
-                } else {
-                    message.channel.send('```'+ "No player data found for "+ username +'```');
-                }
+                });
             break;
             
         }
@@ -269,19 +293,6 @@ const commands = {
 }
 
 
-function loadPlayers()
-{
-    pData = loadJSON( playerFile );
-    console.log( pData );
-    if ( pData )
-    {
-        for ( var i in pData )
-        {
-            oplayers.push( new Player( pData[i].id, pData[i].username ));
-        }
-    }
-}
-        
 
 //Run the program
 main();
@@ -292,10 +303,7 @@ async function main()
 
     // Players in database
     players.find({}).exec( function( err, docs ) { console.log( docs );} );
-    // Load players from file
-    loadPlayers();
     console.log( players );
-    
 
     //Connect to discord
     const discord = new Discord.Client();
@@ -330,7 +338,7 @@ async function main()
     const bot = new WebsocketBot();
     //Use a hashed password, SHA512
     await bot.loginWithHash(username, password);
-    var subs = new Subscriptions( discordChannels, players, kills );
+    var subs = new Subscriptions( discordChannels, players, kills, chunkHistory );
 
     //When any of the 'targetServers' are available, a connection is automatically created.
     await bot.run(test => targetServers.includes(test.id), async (server, connection) =>
