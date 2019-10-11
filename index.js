@@ -254,22 +254,27 @@ const commands = {
                     {
                         message.channel.send('```'+ "No player data found for "+ username +'```');
                     } else {
-                        chunkHistory.find({ player: player.id }).sort({ ts: -1 }).exec( function ( err, chunklist ) {
-                            if ( err )
-                            {
-                                console.log( err );
-                            } else if ( !!chunklist ) {
-                                var response  = '| Path History for '+ username +"\n";
-                                    response += '|------------------'+ strrep('-', username.length+1) +"\n";
-                                for ( var i in chunklist ) {
-                                    var elem = chunklist[i];
-                                    response += "|["+ moment( elem.ts ).format( "YYYY/MM/DD HH:mm:ss" ) +"] "+ elem.chunk +"\n";
+                        if ( !!player )
+                        {
+                            chunkHistory.find({ player: player.id }).sort({ ts: -1 }).exec( function ( err, chunklist ) {
+                                if ( err )
+                                {
+                                    console.log( err );
+                                } else if ( !!chunklist ) {
+                                    var response  = '| Path History for '+ username +"\n";
+                                        response += '|------------------'+ strrep('-', username.length+1) +"\n";
+                                    for ( var i in chunklist ) {
+                                        var elem = chunklist[i];
+                                        response += "|["+ moment( elem.ts ).format( "YYYY/MM/DD HH:mm:ss" ) +"] "+ elem.chunk +"\n";
+                                    }
+                                    message.channel.send('```'+ response +'```');
+                                } else {
+                                    message.channel.send('```'+ "No path data found for "+ username +'```');
                                 }
-                                message.channel.send('```'+ response +'```');
-                            } else {
-                                message.channel.send('```'+ "No player data found for "+ username +'```');
-                            }
-                        });
+                            });
+                        } else {
+                            message.channel.send('```'+ "No player found for "+ username +'```');
+                        }
                     }
                 });
             break;
