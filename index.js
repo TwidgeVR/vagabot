@@ -58,15 +58,17 @@ const commands = {
             argv = args.shift();
         }
 
-        
         var username = args.join(' ');
-
-        if ( username && !!playerLocations[username] )
-        {
-            message.channel.send(username +" is at "+ playerLocations[username]);
-        } else if ( username ){
-            message.channel.send("No location known for "+ username);
-        }
+        players.findOne({ username: username }, function( err, player ) {
+            if ( err )
+            {
+                console.log( err );
+            } else if ( !!player && player.lastChunk !== undefined ) {
+                message.channel.send( '```'+ username +" was last seen at "+ player.lastChunk +'```');
+            } else {
+                message.channel.send( '```'+ "No location known for "+ username +'```' );
+            }
+        });
     },
 
     'who': (message, args) =>
