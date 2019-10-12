@@ -243,12 +243,16 @@ const commands = {
                         } else if ( !chunklist ) {
                             message.channel.send('```'+ "No history for zone '"+ chunkName +"'"+ '```');
                         } else {
-                            var response  = "| Players who have visited zone '"+ chunkName +"'\n";
+                            var response  = "| Players who have recently visited zone '"+ chunkName +"'\n";
                                 response += "|--------------------------------"+ strrep( '-', chunkName.length ) +"-\n";
-                            chunklist.forEach( function( ichunk ) {
+                            let limit = 15;
+                            if ( chunklist.length < limit ) { limit = chunklist.length; }
+                            for ( var i = 0; i < limit; i++ ) {
+                                ichunk = chunklist[i];
+                                if ( ++i > 10 ) { }
                                 player = playerList.find( x => x.id === ichunk.player );
                                 response += "|["+ moment( ichunk.ts ).format("YYYY/MM/DD HH:mm:ss") +"] "+ player.username +"\n";
-                            });
+                            };
                             message.channel.send('```'+ response +'```');   
                         }
                     });
@@ -276,9 +280,11 @@ const commands = {
                                 {
                                     console.log( err );
                                 } else if ( !!chunklist ) {
+                                    let limit = 20;
                                     var response  = '| Path History for '+ username +"\n";
                                         response += '|------------------'+ strrep('-', username.length+1) +"\n";
-                                    for ( var i in chunklist ) {
+                                    if ( chunklist.length < limit ) { limit = chunklist.length; }
+                                    for ( var i = 0; i < limit ; i++ ) {
                                         var elem = chunklist[i];
                                         response += "|["+ moment( elem.ts ).format( "YYYY/MM/DD HH:mm:ss" ) +"] "+ elem.chunk +"\n";
                                     }
@@ -355,12 +361,19 @@ const commands = {
             case 'item':
                 let mustMatch = args.join(' ');
                 spawnables.find({ name : { $regex: new RegExp( mustMatch, 'gi' ) }}).sort({ name : 1 }).exec( function( err, results ) {
-                    let response  = "| Spawnable items matching "+ mustMatch +"\n";
-                        response += "|--------------------------"+ strrep('-', mustMatch.length) +"\n";
+                    let response  = "| Spawnable items matching "+ mustMatch +" ("+ results.length +")\n";
+                        response += "|--------------------------"+ strrep('-', mustMatch.length) + "-----\n";
+                    let itemc = 0;
                     results.forEach( function( item ) {
                         let shortsp = '';
                         if ( item.hash.length < 5 ) { shortsp = ' '; }
                         response += "| "+ item.hash + shortsp + " | "+ item.name +"\n";
+                        if ( itemc++ > 20 )
+                        {
+                            message.channel.send('```'+ response +'```')
+                            itemc = 0;
+                            response = '';
+                        }
                     });
                     message.channel.send( '```'+ response +'```')
                 })
