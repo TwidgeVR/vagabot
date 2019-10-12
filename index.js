@@ -12,8 +12,7 @@ const Subscriptions = require('./src/subscriptions.js');
 
 //Load information from credentials and config
 const { username, password, botToken } = require("./credentials");
-const { targetServers, discordPrefix, discordChannels } = require("./config");
-const { playerFile } = require("./files");
+const { targetServers, discordPrefix, discordChannels, discordRoles } = require("./config");
 
 
 //NeDB
@@ -21,11 +20,13 @@ var Datastore = require('nedb');
 var players = new Datastore({ filename : 'data/players.db', autoload: true });
 var kills = new Datastore({ filename : 'data/playerkills.db', autoload: true });
 var chunkHistory = new Datastore({ filename : 'data/chunkhistory.db', autoload: true });
+var spawnables = new Datastore({ filename : 'data/spawnables.db', autoload: true });
 players.ensureIndex({ fieldName: 'id', unique: 'true' });
 players.persistence.setAutocompactionInterval( 129600 );
+spawnables.ensureIndex({ fieldName: 'hash', unique: 'true' });
 
-var playerLocations = {};
 var botConnection;
+var pendingCommandList = [];
 
 //Some utility helper functions and prototypes
 function ts()
@@ -43,6 +44,18 @@ function strrep( str, n )
     }
     return result;
 }
+
+// Database helpers
+function insertHandler( err, doc )
+{
+    if ( err ) { console.log( err ); }
+}
+
+function updateHandler( err, rows )
+{
+    if ( err ) { console.log( err ); }
+}
+
 
 //Command list
 const commands = {
@@ -282,6 +295,55 @@ const commands = {
             break;
             
         }
+    },
+
+    'load' : async function( message, args )
+    {
+        switch( args.shift() )
+        {
+            case 'assets':
+                // First verify the message author has correct permission
+                if ( message.member.roles.some( x => discordRoles.admin.includes( x.id ) ))
+                {
+                    console.log( ts()+ "loading assets");
+                    message.channel.send('```'+ "Loading ATT assets, please wait" +'```');
+                    
+                    // Add the handler to pendingCommandList
+                    pendingCommandList.push({
+                        "command" : "spawn list",
+                        "module" : "Alta.Console.Commands.SpawnCommandModule",
+                        "handler": function ( response ) {
+                            let countPrefabs = 0;
+                            let responselines = response.split(/\n/)
+                            responselines.forEach( function( line ) {
+                                let found = line.match( /\|([^|]+)\|([^|]+)\|/ );
+                                if ( found )
+                                {
+                                    found.shift(); // fulltext of match
+                                    let num = new String( found.shift() ).trim() // ID of the prefab
+                                    let val = new String( found.shift() ).trim() // The prefab name
+                                    if ( num.match( /[0-9]+/ ) )
+                                    {
+                                        // It's a prefab!  Store it
+                                        console.log( "found asset: "+ num +" | "+ val )
+                                        spawnables.update({ hash: num }, { $set : { hash: num, name: val } }, { upsert: true }, updateHandler );
+                                        countPrefabs++;
+                                    }
+                                }
+                            });
+                            message.channel.send( '```'+ "Found and stored "+ countPrefabs + " spawnable assets" +'```')
+                        }
+                     });
+
+                     // Finally, execute the command
+                     botConnection.wrapper.send( "spawn list" )
+                     
+                } else {
+                    console.log( "invalid permission to load assets" );
+                    message.channel.send('```'+ "You do not have the required permissions" +'```');
+                }
+            break;
+        }
     }
 }
 
@@ -384,6 +446,19 @@ async function main()
         await wrapper.subscribe("TradeDeckUsed", data => { subs.TradeDeckUsed( discord, data ); });
         await wrapper.subscribe("CreatureKilled", data => { subs.CreatureKilled( discord, data ); });
         await wrapper.subscribe("PlayerMovedChunk", data => { subs.PlayerMovedChunk( discord, data ); });
+        
+        await wrapper.subscribe("TraceLog", data => {
+            if ( pendingCommandList.length && data.logger === pendingCommandList[0].module )
+            {
+                console.log( "the command is a module match" )
+                let command = pendingCommandList.shift();
+                if ( command )
+                {
+                    console.log( "executing handler" )
+                    command.handler( data.message );
+                }
+            }
+        });
 
     });
     // end bot.run()
