@@ -307,7 +307,7 @@ const commands = {
                 {
                     console.log( ts()+ "loading assets");
                     message.channel.send('```'+ "Loading ATT assets, please wait" +'```');
-                    
+
                     // Add the handler to pendingCommandList
                     pendingCommandList.push({
                         "command" : "spawn list",
@@ -342,6 +342,28 @@ const commands = {
                     console.log( "invalid permission to load assets" );
                     message.channel.send('```'+ "You do not have the required permissions" +'```');
                 }
+            break;
+        }
+    },
+
+    'find' : async function( message, args )
+    {
+        switch( args.shift() )
+        {
+            case 'asset':
+            case 'spawnable':
+            case 'item':
+                let mustMatch = args.join(' ');
+                spawnables.find({ name : { $regex: new RegExp( mustMatch, 'gi' ) }}).sort({ name : 1 }).exec( function( err, results ) {
+                    let response  = "| Spawnable items matching "+ mustMatch +"\n";
+                        response += "|--------------------------"+ strrep('-', mustMatch.length) +"\n";
+                    results.forEach( function( item ) {
+                        let shortsp = '';
+                        if ( item.hash.length < 5 ) { shortsp = ' '; }
+                        response += "| "+ item.hash + shortsp + " | "+ item.name +"\n";
+                    });
+                    message.channel.send( '```'+ response +'```')
+                })
             break;
         }
     }
