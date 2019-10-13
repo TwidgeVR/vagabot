@@ -65,7 +65,10 @@ The bot uses some JSON configuration files.  You may copy the *.example files pr
     }
 }
 ```
-``` IMPORTANT NOTE: the IDs used in config.json should be quoted (eg. "12345" not 12345 ), they are strings not integers. ```
+``` 
+IMPORTANT NOTE: 
+The IDs used in config.json should be quoted (eg. "12345" not 12345 ), they are strings not integers. 
+```
 
 Once configured, start the bot going with:
 
