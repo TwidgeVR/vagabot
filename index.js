@@ -470,11 +470,11 @@ const commands = {
                                 "command" : command,
                                 "module" : "Alta.Console.CommandService",
                                 "handler": function( response ) {
-                                    let success = response.match(/Started|Finished/)
+                                    let success = response.match(/(Started|Finished).*trade\.post/)
                                     if ( success !== null )
                                     {
                                         console.log( response );
-                                        message.channel.send('```'+ "Mailed "+ asset +"("+ count+") to "+ playerName +'```');
+                                        message.channel.send('```'+ "Mailed "+ asset +" ("+ count+") to "+ playerName +'```');
                                     }
                                 }
                             };
