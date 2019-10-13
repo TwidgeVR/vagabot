@@ -67,7 +67,8 @@ The bot uses some JSON configuration files.  You may copy the *.example files pr
 ```
 ``` 
 IMPORTANT NOTE: 
-The IDs used in config.json should be quoted (eg. "12345" not 12345 ), they are strings not integers. 
+The Discord IDs used in config.json should be quoted (eg. "12345" not 12345 ), they are strings not integers.
+The targetServers IDs should *not* be quoted, however.
 ```
 
 Once configured, start the bot going with:
