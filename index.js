@@ -374,6 +374,121 @@ const commands = {
         }
     },
 
+    'spawn' : async function( message, args )
+    {
+        let playerName = args.shift();
+        let asset = args.shift();
+        let count = args.shift();
+        if ( asset.indexOf(' ') > -1 )
+        {
+            asset = '"'+ asset +'"';
+        }
+        if ( !count )
+        {
+            count = 1;
+        }
+
+        // First, verify spawn permission for the users
+        if ( message.member.roles.some( x => discordRoles.spawn.includes( x.id ) ))
+        {
+            // TODO assign permissions to each asset and check the permission here
+            console.log( "Spawning an item: "+ asset +" ("+ count +") for "+ playerName )
+            let command = "spawn " + playerName +' '+ asset +' '+ count;
+            let cmdid = moment.valueOf();
+            pendingCommandList.push({
+                "id" : cmdid,
+                "command" : command,
+                "module" : "Alta.Console.Commands.SpawnCommandModule",
+                "handler": function( response ) {
+                    console.log( response );
+                    let mresponse = response.replace(/Spawning/, "Spawned")
+                    message.channel.send('```'+ mresponse +'```');
+                }
+            });
+
+            botConnection.wrapper.send( command );
+
+            // This checks to see if the command was successful
+            // The command is successful if there is no pendingCommandList item with the cmdid
+            setTimeout( function() {
+                let mpendingCommand = pendingCommandList.find( x => x.id === cmdid );
+                if ( mpendingCommand !== undefined && mpendingCommand.id === cmdid )
+                {
+
+                    message.channel.send( '```'+ "Spawn command failed: "+ command +'```' );
+                }
+            }, 10000 )
+
+        } else {
+            console.log( "invalid permission to load assets: " + message.author.username )
+            message.channel.send('```'+ "You do not have the required permissions to spawn item: " + asset +'```')
+        }
+    },
+
+    'trade' : async function( message, args )
+    {
+        switch( args.shift() )
+        {
+            case 'post':
+                // Spawn items in the player's mailbox
+                let playerName = args.shift();
+                let asset = args.shift();
+                let count = args.shift();
+                if ( asset.indexOf(' ') > -1 )
+                {
+                    asset = '"'+ asset +'"';
+                }
+                if ( !count )
+                {
+                    count = 1;
+                }
+                // First, verify spawn permission for the users
+                if ( message.member.roles.some( x => discordRoles.spawn.includes( x.id ) ))
+                {
+                    // TODO assign permissions to each asset and check the permission here
+                    console.log( "Mailing an item: "+ asset +" ("+ count +") for "+ playerName );
+                    players.findOne({ username : playerName }, function( err, player ) {
+                        if ( !!player && player.id !== undefined )
+                        {
+                            let command = "trade post "+ player.id +' '+ asset +' '+ count;
+                            let cmdid = moment.valueOf();
+                            
+                            cmdItem = 
+                            {
+                                "id" : cmdid,
+                                "command" : command,
+                                "module" : "Alta.Console.CommandService",
+                                "handler": function( response ) {
+                                    console.log( response );
+                                    message.channel.send('```'+ response +'```');
+                                }
+                            };
+                            pendingCommandList.push( cmdItem );
+                                    
+                            botConnection.wrapper.send( command );
+        
+                            // This checks to see if the command was successful
+                            // The command is successful if there is no pendingCommandList item with the cmdid
+                            setTimeout( function() {
+                                let mpendingCommand = pendingCommandList.find( x => x.id === cmdid );
+                                if ( mpendingCommand !== undefined && mpendingCommand.id === cmdid )
+                                {
+        
+                                    message.channel.send( '```'+ "Trade post command failed: "+ command +'```' );
+                                }
+                            }, 10000 )
+                        } else {
+                            message.channel.send( "Player "+ playerName +" is not known, or could not find player ID")
+                        }
+                    })
+                } else {
+                    console.log( "invalid permission to load assets: " + message.author.username )
+                    message.channel.send('```'+ "You do not have the required permissions to post item: " + asset +'```')
+                }
+            break;
+        }
+    },
+
     'find' : async function( message, args )
     {
         switch( args.shift() )
@@ -412,7 +527,7 @@ function splitArgs( args )
 
     // replace spaces which are inside quotes with the spaceChar placeholder
     let mangleargs = args.replace( /"([^"]*)"?/g, ( match, cap ) => {
-        return cap.replace(/\s/, spaceChars );
+        return cap.replace(/\s/g, spaceChars );
     });
 
     // split the padded string on actual spaces
@@ -510,6 +625,7 @@ async function main()
             if ( pendingCommandList.length && data.logger === pendingCommandList[0].module )
             {
                 console.log( "the command is a module match" )
+                // TODO: add a 'type' to pending commands to better match response items
                 let command = pendingCommandList.shift();
                 if ( command )
                 {
