@@ -24,6 +24,12 @@ In short,
 1. Install node/npm using the many methods available online.
 2. Install dependencies with `npm i`
 
+Option #2:
+
+Go make an account at https://glitch.com and start a new project, cloning from:
+https://github.com/edencomputing/vagabot.git
+
+
 The bot uses some JSON configuration files.  You may copy the *.example files provided in the checkout, or create your own.
 
 - **credentials.json** - this file contains the authentication information to connect to Alta API and to Discord
@@ -55,17 +61,15 @@ The bot uses some JSON configuration files.  You may copy the *.example files pr
         "TradeDeckUsed" : <channel ID>,
         "CreatureKilled" : <channel ID>,
         "CreatureSpawned" : <channel ID>,
+    },
+
+    "discordRoles" :
+    {
+        "admin" : [ <comma sep list of role IDs who can admin the bot> ],
+        "spawn" : [ <comma sep list of role IDs who can spawn items> ]
     }
 }
 ```
-
-- **files.json** - contains the filenames for saving player and statistics
-```
-{
-    "playerFile" : "data/players.json"
-}
-```
-
 
 Once configured, start the bot going with:
 
@@ -125,13 +129,38 @@ For example, the following are equivalent:
 !players online on the vat
 ```
 
+### Commands
+
+`ping` - bot returns 'pong' if it is alive
+
+`where [is] <player>` - return the last known chunk for the player
+
+`who [is] <player>` - return a short bio for the player
+
+`bio [<player>] <message>` - sets a bio message for yourself or the specified user
+
+`servers` - list the servers and player count the bot user has access to, get invited to more servers to see them
+
+`players [<server name>]` - list players on known servers, or just the specified server name.  regex supported.
+
+`zone`
+- `zone history <chunk name>` - list the players who have visited the specified chunk
+
+`player`
+- `player path` - list the last known chunks the player has visited
+
+`load`
+- `load assets` - [ADMIN] - load the list of spawnable assets, server must be alive
+
+`find`
+- `find asset <name>` - find any spawnable assets matching the name, regex supported
+
+
 ### Known issues
 
-- On ATT private servers, when no players are active the server may go into a 'paused' state. When a player joins and awakens the server, the bot generally is only able to join after the player, which causes their initial join event to be missed.  For this reason, it is not wise to initialize variables or trigger events based on join messages.
+- The bot occasionally does not reconnect after a 'paused' period, requiring a restart.
 
-- The bot sometimes does not reconnect after a 'paused' period, requiring a restart.
-
-- Some event subscriptions are particularly chatty, such as PlayerMovedChunk and CreatureSpawned, so by default are left disabled.
+- Some event subscription messages are particularly chatty, such as PlayerMovedChunk and CreatureSpawned, so by default are left disabled.
 
 ## Enjoy!
 
