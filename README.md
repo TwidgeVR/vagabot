@@ -163,6 +163,8 @@ For example, the following are equivalent:
 
 ### Known issues
 
+- Multi-word arguments containing spaces should be quoted, eg. "Barry cooper" or "Evinon Steel Ingot"
+
 - The bot occasionally does not reconnect after a 'paused' period, requiring a restart.
 
 - Some event subscription messages are particularly chatty, such as PlayerMovedChunk and CreatureSpawned, so by default are left disabled.
