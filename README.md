@@ -147,7 +147,7 @@ For example, the following are equivalent:
 - `zone history <chunk name>` - list the players who have visited the specified chunk
 
 `player`
-- `player path` - list the last known chunks the player has visited
+- `player path <player>` - list the last known chunks the player has visited
 
 `load`
 - `load assets` - [ADMIN] - load the list of spawnable assets, server must be alive
