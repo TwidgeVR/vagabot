@@ -24,11 +24,6 @@ In short,
 1. Install node/npm using the many methods available online.
 2. Install dependencies with `npm i`
 
-Option #2:
-
-Go make an account at https://glitch.com and start a new project, cloning from:
-https://github.com/edencomputing/vagabot.git
-
 
 The bot uses some JSON configuration files.  You may copy the *.example files provided in the checkout, or create your own.
 
