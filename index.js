@@ -364,7 +364,13 @@ const commands = {
                      });
 
                      // Finally, execute the command
-                     botConnection.wrapper.send( "spawn list" )
+                     try {
+                        botConnection.wrapper.send( "spwan list" );
+                    } catch ( e ) {
+                        console.log( e )
+                        message.channel.send( '```'+ "Cannot send command, is server offline?" +'```')
+                        return;
+                    }
                      
                 } else {
                     console.log( "invalid permission to load assets" );
@@ -401,13 +407,18 @@ const commands = {
                 "module" : "Alta.Console.Commands.SpawnCommandModule",
                 "handler": function( response ) {
                     console.log( response );
-                    let mresponse = response.replace(/Spawning/, "Spawned")
+                    let mresponse = response.replace(/Spawning/, "Spawned").replace(/ for/, '('+ count +') for');
                     message.channel.send('```'+ mresponse +'```');
                 }
             });
 
-            botConnection.wrapper.send( command );
-
+            try {
+                botConnection.wrapper.send( command );
+            } catch ( e ) {
+                console.log( e )
+                message.channel.send( '```'+ "Cannot send command, is server offline?" +'```')
+                return;
+            }
             // This checks to see if the command was successful
             // The command is successful if there is no pendingCommandList item with the cmdid
             setTimeout( function() {
@@ -459,13 +470,23 @@ const commands = {
                                 "command" : command,
                                 "module" : "Alta.Console.CommandService",
                                 "handler": function( response ) {
-                                    console.log( response );
-                                    message.channel.send('```'+ response +'```');
+                                    let success = response.match(/Started|Finished/)
+                                    if ( success !== null )
+                                    {
+                                        console.log( response );
+                                        message.channel.send('```'+ "Mailed "+ asset +"("+ count+") to "+ playerName +'```');
+                                    }
                                 }
                             };
                             pendingCommandList.push( cmdItem );
-                                    
-                            botConnection.wrapper.send( command );
+                            
+                            try {
+                                botConnection.wrapper.send( command );
+                            } catch ( e ) {
+                                console.log( e )
+                                message.channel.send( '```'+ "Cannot send command, is server offline?" +'```')
+                                return;
+                            }
         
                             // This checks to see if the command was successful
                             // The command is successful if there is no pendingCommandList item with the cmdid
