@@ -425,7 +425,15 @@ const commands = {
                 let mpendingCommand = pendingCommandList.find( x => x.id === cmdid );
                 if ( mpendingCommand !== undefined && mpendingCommand.id === cmdid )
                 {
-
+                    // remove the element to prevent erroneous messages later
+                    for ( var i = 0; i < pendingCommandList.length; i++ )
+                    {
+                        if ( pendingCommandList[i].id === cmdid )
+                        {
+                            pendingCommandList.splice(i,1);
+                            break;
+                        }
+                    }
                     message.channel.send( '```'+ "Spawn command failed: "+ command +'```' );
                 }
             }, 10000 )
@@ -494,7 +502,15 @@ const commands = {
                                 let mpendingCommand = pendingCommandList.find( x => x.id === cmdid );
                                 if ( mpendingCommand !== undefined && mpendingCommand.id === cmdid )
                                 {
-        
+                                    // remove the element to prevent erroneous messages later
+                                    for ( var i = 0; i < pendingCommandList.length; i++ )
+                                    {
+                                        if ( pendingCommandList[i].id === cmdid )
+                                        {
+                                            pendingCommandList.splice(i,1);
+                                            break;
+                                        }
+                                    }
                                     message.channel.send( '```'+ "Trade post command failed: "+ command +'```' );
                                 }
                             }, 10000 )
