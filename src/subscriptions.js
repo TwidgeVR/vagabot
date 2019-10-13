@@ -10,6 +10,7 @@ function ts_f()
     return "["+ moment().format("h:mm:ss A") +"] " 
 }
 
+// Database helpers
 function insertHandler( err, doc )
 {
     if ( err ) { console.log( err ); }
@@ -83,8 +84,14 @@ module.exports = class Subscriptions {
                     usedTool: data.usedTool, 
                     toolWielder: data.toolWielder
                 }, insertHandler );
-                discord.channels.get( this.discordChannels["PlayerKilled"] ).send( ts_f() + data.killedPlayer.username +" was killed by: "+ data.toolWielder );
-                discord.channels.get( this.discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killedPlayer.username +" was killed by: "+ data.toolWielder );
+                let matches = data.toolWielder.match( /[0-9]+\s-\s([^\()]+)/ );
+                let toolWielder = data.toolWielder;
+                if ( matches !== null )
+                {
+                    toolWielder = matches[1];
+                }
+                discord.channels.get( this.discordChannels["PlayerKilled"] ).send( ts_f() + data.killedPlayer.username +" was killed by: "+ toolWielder );
+                discord.channels.get( this.discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killedPlayer.username +" was killed by: "+ toolWielder +'```' );
             } else {
                 this.killsDb.insert({ 
                     ts: now(), 
