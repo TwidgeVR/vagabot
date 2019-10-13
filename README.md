@@ -48,14 +48,14 @@ The bot uses some JSON configuration files.  You may copy the *.example files pr
 
     "discordChannels" :
     {
-        "PlayerJoined" : <discord channel ID>,
-        "PlayerLeft" : <channel ID>,
-        "PlayerKilled" : <channel ID>,
-        "PublicPlayerKilled" : <channel ID>,
-        "PlayerMovedChunk" : <channel ID>,
-        "TradeDeckUsed" : <channel ID>,
-        "CreatureKilled" : <channel ID>,
-        "CreatureSpawned" : <channel ID>,
+        "PlayerJoined" : "<discord channel ID>",
+        "PlayerLeft" : "<channel ID>",
+        "PlayerKilled" : "<channel ID>",
+        "PublicPlayerKilled" : "<channel ID>",
+        "PlayerMovedChunk" : "<channel ID>",
+        "TradeDeckUsed" : "<channel ID>",
+        "CreatureKilled" : "<channel ID>",
+        "CreatureSpawned" : "<channel ID>",
     },
 
     "discordRoles" :
