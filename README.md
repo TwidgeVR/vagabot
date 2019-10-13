@@ -145,10 +145,15 @@ For example, the following are equivalent:
 - `player path <player>` - list the last known chunks the player has visited
 
 `load`
-- `load assets` - [ADMIN] - load the list of spawnable assets, server must be alive
+- `load assets` - req role: admin - load the list of spawnable assets, server must be alive
 
 `find`
 - `find asset <name>` - find any spawnable assets matching the name, regex supported
+
+`spawn <player> <prefab> [<count>]` - req role: spawn - spawn something for the specified player
+
+`trade`
+- `trade post <player> <prefab> [<count>]` - req role: spawn - send something to the player's mailbox
 
 
 ### Known issues
