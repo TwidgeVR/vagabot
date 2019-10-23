@@ -133,6 +133,7 @@ const commands = {
 
     'bio': (message, args) =>
     {
+        console.log( args );
         function updatePlayerBio( playerid, bio )
         {
             players.update({ id: playerid }, { $set: { bio: bio } }, {}, function( err, numReplaced ) {
@@ -563,7 +564,7 @@ function splitArgs( args )
     while( args.indexOf( spaceChars ) > -1 ) { spaceChars += '|'; }
 
     // replace spaces which are inside quotes with the spaceChar placeholder
-    let mangleargs = args.replace( /"([^"]*)"?/g, ( match, cap ) => {
+    let mangleargs = args.replace( /[“"]([^“^"]*)[“"]?/g, ( match, cap ) => {
         return cap.replace(/\s/g, spaceChars );
     });
 
