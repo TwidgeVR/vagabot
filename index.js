@@ -13,7 +13,7 @@ const Subscriptions = require('./src/subscriptions.js');
 
 //Load information from credentials and config
 const { username, password, botToken } = require("./credentials");
-const { targetServers, discordPrefix, discordChannels, discordRoles } = require("./config");
+const { targetServers, showPublicServers, discordPrefix, discordChannels, discordRoles } = require("./config");
 
 
 //NeDB
@@ -195,6 +195,10 @@ const commands = {
                 listTable += "|"+ strrep('-', (serverNameLen + 1) ) +"|---------\n";
             for ( var i in servers )
             {
+                if ( !showPublicServers && !targetServers.includes( servers[i].id ) ) 
+                { 
+                    continue; 
+                }
                 listTable += "| "+ servers[i].name + strrep(' ', ( serverNameLen - servers[i].name.length )) +"| "+ servers[i].online_players.length +"\n";
             }
         
@@ -219,6 +223,10 @@ const commands = {
 
         for( var i in servers )
         {
+            if ( !showPublicServers && !targetServers.includes( servers[i].id ) ) {
+                continue;
+            }
+            
             if ( mustMatch )
             {
                 var re = new RegExp( mustMatch, 'ig' );
