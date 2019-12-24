@@ -229,7 +229,7 @@ const commands = {
         for( var i in servers )
         {
             var pOnline = servers[i].online_players;
-            if ( pOnline <= 0 ) 
+            if ( pOnline.length <= 0 && !mustMatch ) 
             {
                 continue
             }
@@ -256,10 +256,16 @@ const commands = {
             listTable += "| "+ servers[i].name +"\n";
             listTable += "|"+ strrep('-', (servers[i].name.length + 1)) +"\n";     
 
-            for( var n in pOnline )
+            if ( pOnline.length <= 0 )
             {
-                listTable += "| "+ pOnline[n].username +"\n";
+                listTable += "| No players online\n"
+            } else {
+                for( var n in pOnline )
+                {
+                    listTable += "| "+ pOnline[n].username +"\n";
+                }
             }
+
             listTable += "\n";
         }
 
