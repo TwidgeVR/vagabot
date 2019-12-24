@@ -228,6 +228,12 @@ const commands = {
 
         for( var i in servers )
         {
+            var pOnline = servers[i].online_players;
+            if ( pOnline <= 0 ) 
+            {
+                continue
+            }
+
             if ( blacklistServers.includes( servers[i].id ) )
             {
                 continue;
@@ -246,10 +252,10 @@ const commands = {
                     continue;
                 }
             }
+                       
             listTable += "| "+ servers[i].name +"\n";
-            listTable += "|"+ strrep('-', (servers[i].name.length + 1)) +"\n";
-                    
-            var pOnline = servers[i].online_players;
+            listTable += "|"+ strrep('-', (servers[i].name.length + 1)) +"\n";     
+
             for( var n in pOnline )
             {
                 listTable += "| "+ pOnline[n].username +"\n";
