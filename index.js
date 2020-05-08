@@ -298,13 +298,17 @@ const commands = {
                         } else {
                             var response  = "| Players who have recently visited zone '"+ chunkName +"'\n";
                                 response += "|--------------------------------"+ strrep( '-', chunkName.length ) +"-\n";
-                            let limit = 15;
+                            let limit = 1500;
                             if ( chunklist.length < limit ) { limit = chunklist.length; }
                             for ( var i = 0; i < limit; i++ ) {
                                 ichunk = chunklist[i];
                                 if ( ++i > 10 ) { }
                                 player = playerList.find( x => x.id === ichunk.player );
                                 response += "|["+ moment( ichunk.ts ).format("YYYY/MM/DD HH:mm:ss") +"] "+ player.username +"\n";
+                                if ( response.length > 1900 ) {
+                                    message.channel.send('```'+ response +'```');
+                                    response = "|--------------------------------"+ strrep( '-', chunkName.length ) +"-\n";
+                                }                        
                             };
                             message.channel.send('```'+ response +'```');   
                         }
