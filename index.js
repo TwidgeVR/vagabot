@@ -1,7 +1,7 @@
 //Load required classes.
-const { Servers } = require('alta-jsapi');
+const { Sessions, Servers } = require('alta-jsapi');
 const { WebsocketBot } = require('att-bot-core');
-const { BasicWrapper } = require('att-websockets');
+const { BasicWrapper, Connection } = require('att-websockets');
 const Discord = require('discord.js');
 const moment = require('moment');
 const sha512 = require('crypto-js/sha512');
@@ -13,7 +13,7 @@ const Subscriptions = require('./src/subscriptions.js');
 
 //Load information from credentials and config
 const { username, password, botToken } = require("./credentials");
-const { targetServers, showAllServers, blacklistServers, discordPrefix, discordChannels, discordRoles } = require("./config");
+const { targetServer, showAllServers, blacklistServers, discordPrefix, discordChannels, discordRoles } = require("./config");
 
 
 //NeDB
@@ -26,7 +26,12 @@ players.ensureIndex({ fieldName: 'id', unique: 'true' });
 players.persistence.setAutocompactionInterval( 129600 );
 spawnables.ensureIndex({ fieldName: 'hash', unique: 'true' });
 
-var botConnection;
+var connectInterval = 30000; // milliseconds
+var serverPingInterval = 30000; // ms
+var subscriptionConnectInterval = 10000; //ms
+var serverConnectedState = false;
+var subscriptionsActive = false;
+var botConnection = {};
 var pendingCommandList = [];
 
 //Some utility helper functions and prototypes
@@ -612,7 +617,34 @@ function splitArgs( args )
     return argarr;
 }
 
+async function sleep( ms )
+{
+    await new Promise( resolve => setTimeout( resolve, ms ))
+}
 
+async function connectToServer( serverId )
+{
+    console.log( "Getting server details:" )
+    var serverDetails = await Servers.joinConsole( serverId )
+    console.log( serverDetails )
+    return serverDetails
+}
+
+async function subscribeTo( subscription, callback )
+{
+    if ( serverConnectedState && ( typeof( botConnection.wrapper ) !== undefined ) )
+    {        
+        let state = await botConnection.wrapper.subscribe( subscription, callback )
+        if (( typeof( state.Result ) == undefined ) || state.Result != 'Success' )
+        {
+            botConnection.wrapper.unsubscribe( subscription, callback )
+            console.log( "Subscription to "+ subscription +" failed: ", state )
+            setTimeout( function() { subscribeTo( subscription, callback ) }, subscriptionConnectInterval )
+        } else {
+            subscriptionsActive = true;
+        }
+    }
+}
 
 //Run the program
 main();
@@ -655,11 +687,99 @@ async function main()
         }
     });
                     
+    var subs = new Subscriptions( discordChannels, players, kills, chunkHistory );
 
     //Alta Login
+    //Sessions.loginWithHash(username, mpassword);
     const bot = new WebsocketBot();
     //Use a hashed password, SHA512
     await bot.loginWithHash(username, mpassword);
+    while ( true ){
+        
+        console.log( "Checking "+ targetServer )
+        var serverDetails = await Servers.getDetails( targetServer )
+        //console.log( serverDetails )
+        if ( typeof( serverDetails.online_ping ) === 'undefined' )
+        {
+            console.log( "Server is offline" )
+            serverConnectedState = false
+            if ( typeof( botConnection.wrapper ) != undefined && subscriptionsActive ) {
+                console.log( "Removing subscriptions")
+                botConnection.wrapper.emitter.removeAllListeners()
+                subscriptionsActive = false;
+            }
+        } else {
+            if ( !serverConnectedState )
+            {                    
+                console.log( "Server is online, connecting...")
+                var details = await Servers.joinConsole( targetServer )
+                if ( details.allowed )
+                {
+                    console.log( details )
+                    var connection = new Connection( details.name )
+                    try
+                    {
+                        await connection.connect( details.connection.address, details.connection.websocket_port, details.token )
+                    } catch( e ) {
+                        "Cannot connect to server, error: "+ e.message
+                        await sleep( connectInterval )
+                        continue
+                    }
+                    serverConnectedState = true
+                    var wrapper = new BasicWrapper( connection )
+
+                    botConnection = 
+                    {
+                        "connection" : connection,
+                        "wrapper" : wrapper
+                    }         
+
+                    console.log( ts() +"loading inital players" );
+                    for ( var i in serverDetails.online_players )
+                    {
+                        let oplayer = serverDetails.online_players[i];
+                        subs.PlayerJoined( discord, { "user": { "id": oplayer.id, "username": oplayer.username } });
+                    }
+
+                    // Subscriptions
+                    subscribeTo( "InfoLog", data => { subs.InfoLog( discord, data ) } )
+                    subscribeTo( "PlayerJoined", data => { subs.PlayerJoined( discord, data ) } )
+                    subscribeTo( "PlayerLeft", data => { subs.PlayerLeft( discord, data ) } )
+                    subscribeTo( "PlayerKilled", data => { subs.PlayerKilled( discord, data ) } )
+                    subscribeTo( "TradeDeckUsed", data => { subs.TradeDeckUsed( discord, data ) } )
+                    subscribeTo( "CreatureKilled", data => { subs.CreatureKilled( discord, data ) } )
+                    subscribeTo( "PlayerMovedChunk", data => { subs.PlayerMovedChunk( discord, data ) } )
+
+                    subscribeTo( "TraceLog", data => {
+                        if ( pendingCommandList.length && data.logger === pendingCommandList[0].module )
+                        {
+                            console.log( "the command is a module match" )
+                            // TODO: add a 'type' to pending commands to better match response items
+                            let command = pendingCommandList.shift();
+                            if ( command )
+                            {
+                                console.log( "executing handler" )
+                                command.handler( data.message );
+                            }
+                        }
+                    });
+
+                } else {
+                    console.log( "Server is not connectable")
+                    serverConnectedState = false
+                    console.log( connDetails)
+                }
+            } else {
+                console.log( "Server is connected and alive")
+            }
+        }
+        await sleep( serverPingInterval )
+    }
+
+    //Alta Login
+    //const bot = new WebsocketBot();
+    //Use a hashed password, SHA512
+    //await bot.loginWithHash(username, mpassword);
     var subs = new Subscriptions( discordChannels, players, kills, chunkHistory );
 
     //When any of the 'targetServers' are available, a connection is automatically created.

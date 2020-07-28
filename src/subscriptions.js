@@ -1,4 +1,5 @@
 const moment = require('moment');
+const { username } = require("../credentials")
 
 function now()
 {
@@ -64,6 +65,7 @@ module.exports = class Subscriptions {
     {
         //console.log( data );
         console.log( ts_f() + "player kill" );
+        var sameChannel = ( this.discordChannels["PlayerKilled"] == this.discordChannels["PublicPlayerKilled"] )
         if ( data.killerPlayer != undefined ) 
         {
             this.killsDb.insert({ 
@@ -74,7 +76,7 @@ module.exports = class Subscriptions {
                 toolWielder: data.toolWielder
             }, insertHandler );
             discord.channels.get( this.discordChannels["PlayerKilled"] ).send( ts_f() + data.killerPlayer.username +" has killed "+ data.killedPlayer.username );
-            discord.channels.get( this.discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killerPlayer.username +" has murdered "+ data.killedPlayer.username +'```' );
+            if (!sameChannel) discord.channels.get( this.discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killerPlayer.username +" has murdered "+ data.killedPlayer.username +'```' );
         } else {
             if ( data.toolWielder )
             {
@@ -91,14 +93,14 @@ module.exports = class Subscriptions {
                     toolWielder = matches[1];
                 }
                 discord.channels.get( this.discordChannels["PlayerKilled"] ).send( ts_f() + data.killedPlayer.username +" was killed by: "+ toolWielder );
-                discord.channels.get( this.discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killedPlayer.username +" was killed by: "+ toolWielder +'```' );
+                if (!sameChannel) discord.channels.get( this.discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killedPlayer.username +" was killed by: "+ toolWielder +'```' );
             } else {
                 this.killsDb.insert({ 
                     ts: now(), 
                     killed : data.killedPlayer.id, 
                 }, insertHandler );
                 discord.channels.get( this.discordChannels["PlayerKilled"] ).send( ts_f() + data.killedPlayer.username +" has suddenly offed themselves" );
-                discord.channels.get( this.discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killedPlayer.username +" has suddenly offed themselves" +'```');
+                if (!sameChannel) discord.channels.get( this.discordChannels["PublicPlayerKilled"] ).send( '```'+ data.killedPlayer.username +" has suddenly offed themselves" +'```');
             }
         }
     }
@@ -119,6 +121,34 @@ module.exports = class Subscriptions {
     {
         console.log( ts_f() + "creature has spawned" );
         console.log( data );
+    }
+
+    // InfoLog has stats about commands and who has run them
+    InfoLog( discord, data )
+    {
+        //console.log( "InfoLog", data )
+        switch( data.logger )
+        {
+            case "Alta.Console.WebSocketCommandHandler":
+                // Parse the command data
+                let regcommand = /({.*}).*\ -\ (.*)$/
+                var found = data.message.match(regcommand)
+                try {
+                    let commandDetails = JSON.parse( found[1] )
+                    let commandStr = commandDetails.content
+                    let commandUser = found[2]
+                    if ( commandUser != username )
+                    {
+                        console.log( "Console command by "+ commandUser +" : "+ commandStr )
+                        discord.channels.get( this.discordChannels["InfoLog"] ).send( ts_f() + commandUser +" ran command: "+ commandStr )   
+                    }
+                } catch ( e ) {
+                    console.log( "Error parsing console command: "+ e.message, data )
+                }
+            break;
+            default:
+            break;                
+        }
     }
 
 }
