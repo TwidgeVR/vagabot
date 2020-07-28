@@ -6,6 +6,12 @@
 
     "discordPrefix" : "!",
 
+    "blacklistServers" : 
+    [
+        <list of server IDs to hide in player lists>
+    ],
+
+
     "discordChannels" :
     {
         "InfoLog" : <discord channel ID>,

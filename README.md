@@ -39,16 +39,19 @@ The bot uses some JSON configuration files.  You may copy the *.example files pr
 - **config.json** - contains the list of A Township Tale servers to join, and the channel destinations for various notifications
 ```
 {
-    "targetServers" :
-    [
-        <list of server IDs to join>
-    ],
+    "targetServer" : <server ID to join>,
 
     "discordPrefix" : "!",
 
+    "blacklistServers" : 
+    [
+        <list of server IDs to hide in player lists>
+    ],
+
     "discordChannels" :
     {
-        "PlayerJoined" : "<discord channel ID>",
+        "InfoLog" : "<discord channel ID>",
+        "PlayerJoined" : "<channel ID>",
         "PlayerLeft" : "<channel ID>",
         "PlayerKilled" : "<channel ID>",
         "PublicPlayerKilled" : "<channel ID>",
@@ -68,7 +71,7 @@ The bot uses some JSON configuration files.  You may copy the *.example files pr
 ``` 
 IMPORTANT NOTE: 
 The Discord IDs used in config.json should be quoted (eg. "12345" not 12345 ), they are strings not integers.
-The targetServers IDs should *not* be quoted, however.
+The targetServer ID should *not* be quoted, however.
 ```
 
 Once configured, start the bot going with:
@@ -164,8 +167,6 @@ For example, the following are equivalent:
 ### Known issues
 
 - Multi-word arguments containing spaces should be quoted, eg. "Barry cooper" or "Evinon Steel Ingot"
-
-- The bot occasionally does not reconnect after a 'paused' period, requiring a restart.
 
 - Some event subscription messages are particularly chatty, such as PlayerMovedChunk and CreatureSpawned, so by default are left disabled.
 
