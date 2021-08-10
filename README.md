@@ -1,3 +1,14 @@
+# **DISCLAIMER**
+## *Do not use this code in it's current state as a starting point for making a new Township Tale bot.*
+
+*This version is based on deprecated code that will stop working at some point, and hasn't been well maintained to boot.*
+
+Please instead take a look at the newer library for bot-makers, js-tale:
+https://js-tale.readthedocs.io/en/latest/index.html
+
+
+
+=============================
 # vagabot
 A Township Tale NodeJS bot
 
